@@ -2,6 +2,7 @@
 #ifndef _somethinglG_H_
 #define _somethinglG_H_
 #include<eigen3/Eigen/Dense>
+#include<armadillo>
 #include<vector>
 #include<iostream>
 using namespace std;
@@ -14,6 +15,7 @@ class Hidden_Layer
 {
 private:
 	vector<Eigen::Matrix<double, columns, rows>> nodes;
+
 	double B_value[alpha];
 	Eigen::MatrixXd Hidden_layer_init()
 	{
@@ -33,34 +35,6 @@ public:
 	Eigen::Matrix<double, columns, rows> &operator()(int i)
 	{
 		return nodes[i];
-	}
-};
-class Visible_Layer
-{
-private:
-	Eigen::Matrix<double, rows, columns> layer;
-
-public:
-	Visible_Layer()
-	{
-		layer = Eigen::MatrixXd::Random(rows, columns);
-
-		for (auto x : layer.rowwise())
-		{
-			for (auto y = x.begin(); y < x.end(); y++)
-			{
-				(*y > 0.5) ? (*y = 1) : (*y = -1);
-			}
-		}
-	}
-	double &operator()(int i, int j)
-	{
-		return layer(i, j);
-	}
-
-	friend ostream &operator<<(std::ostream &os, Visible_Layer const &m)
-	{
-		return os << m.layer;
 	}
 };
 #endif

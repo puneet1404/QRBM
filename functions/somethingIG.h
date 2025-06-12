@@ -1,40 +1,32 @@
 
 #ifndef _somethinglG_H_
 #define _somethinglG_H_
-#include<eigen3/Eigen/Dense>
-#include<armadillo>
-#include<vector>
-#include<iostream>
+#include <eigen3/Eigen/Dense>
+#include <armadillo>
+#include <vector>
+#include <iostream>
 using namespace std;
 
-const int rows=1;
-const int columns =5;
-const int alpha= 4;
+const int rows = 1;
+const int columns = 5;
+const int alpha = 4;
 
-class Hidden_Layer
+namespace neural_net
 {
-private:
-	vector<Eigen::Matrix<double, columns, rows>> nodes;
 
-	double B_value[alpha];
-	Eigen::MatrixXd Hidden_layer_init()
+	class Neural_net
 	{
-		Eigen::MatrixXd Hidden_layer = Eigen::MatrixXd::Random(columns, rows);
-		return Hidden_layer;
-	}
+	private:
+		vector<Eigen::Matrix<double, columns, rows>> nodes;
 
-public:
-	Hidden_Layer()
-	{
-		for (int i = 0; i < alpha; i++)
+		double B_value[alpha];
+		Eigen::MatrixXd Hidden_layer_init()
 		{
-			nodes.push_back(Hidden_layer_init());
-			B_value[i] = rand() / RAND_MAX;
+			Eigen::MatrixXd Hidden_layer = Eigen::MatrixXd::Random(columns, rows);
+			return Hidden_layer;
 		}
-	}
-	Eigen::Matrix<double, columns, rows> &operator()(int i)
-	{
-		return nodes[i];
-	}
-};
+
+	public:
+	};
+}
 #endif

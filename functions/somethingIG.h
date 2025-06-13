@@ -18,40 +18,27 @@ namespace neural_net
 	class Neural_net
 	{
 	private:
-	//this is the matrix which is multiplied to the column vector for the node values to be obtained 
+		// this is the matrix which is multiplied to the column vector for the node values to be obtained
 		vector<matrix> nodes;
-
-		double B_value[alpha];
 		matrix Hidden_layer_init();
+
 	public:
-	Neural_net();
+		matrix b = arma::zeros(alpha, 1);
+		matrix hidden_layer;
+		Neural_net();
 	};
 }
 
+// implimentation
+matrix neural_net::Neural_net::Hidden_layer_init()
+{
+	matrix Hidden_layer = arma::randu(alpha, columns);
+	return Hidden_layer;
+}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-//implimentation
-	matrix neural_net::Neural_net::Hidden_layer_init()
-		{
-			matrix Hidden_layer = arma::randu(alpha,columns);
-			return Hidden_layer;
-		}
+neural_net::Neural_net::Neural_net()
+{
+	hidden_layer = Hidden_layer_init();
+}
 
 #endif

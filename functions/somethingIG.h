@@ -1,7 +1,6 @@
 
 #ifndef _somethinglG_H_
 #define _somethinglG_H_
-#include <eigen3/Eigen/Dense>
 #include <armadillo>
 #include <vector>
 #include <iostream>
@@ -11,18 +10,19 @@ const int rows = 1;
 const int columns = 5;
 const int alpha = 4;
 
+typedef arma::mat matrix;
 namespace neural_net
 {
 
 	class Neural_net
 	{
 	private:
-		vector<Eigen::Matrix<double, columns, rows>> nodes;
+		vector<matrix> nodes;
 
 		double B_value[alpha];
-		Eigen::MatrixXd Hidden_layer_init()
+		matrix Hidden_layer_init()
 		{
-			Eigen::MatrixXd Hidden_layer = Eigen::MatrixXd::Random(columns, rows);
+			matrix Hidden_layer = arma::randu(alpha,columns);
 			return Hidden_layer;
 		}
 

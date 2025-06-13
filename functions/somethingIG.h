@@ -1,44 +1,66 @@
 
 #ifndef _somethinglG_H_
 #define _somethinglG_H_
-#include <armadillo>
-#include <vector>
-#include <iostream>
+#include<eigen3/Eigen/Dense>
+#include<vector>
+#include<iostream>
 using namespace std;
 
-const int rows = 1;
-const int columns = 5;
-const int alpha = 4;
+const int rows=1;
+const int columns =5;
+const int alpha= 4;
 
-typedef arma::mat matrix;
-namespace neural_net
+class Hidden_Layer
 {
-
-	// a class to simmulate the nodes(number is alpha) and the input 1d chain is column
-	class Neural_net
+private:
+	vector<Eigen::Matrix<double, columns, rows>> nodes;
+	double B_value[alpha];
+	Eigen::MatrixXd Hidden_layer_init()
 	{
-	private:
-		// this is the matrix which is multiplied to the column vector for the node values to be obtained
-		vector<matrix> nodes;
-		matrix Hidden_layer_init();
+		Eigen::MatrixXd Hidden_layer = Eigen::MatrixXd::Random(columns, rows);
+		return Hidden_layer;
+	}
 
-	public:
-		matrix b = arma::zeros(alpha, 1);
-		matrix hidden_layer;
-		Neural_net();
-	};
-}
-
-// implimentation
-matrix neural_net::Neural_net::Hidden_layer_init()
+public:
+	Hidden_Layer()
+	{
+		for (int i = 0; i < alpha; i++)
+		{
+			nodes.push_back(Hidden_layer_init());
+			B_value[i] = rand() / RAND_MAX;
+		}
+	}
+	Eigen::Matrix<double, columns, rows> &operator()(int i)
+	{
+		return nodes[i];
+	}
+};
+class Visible_Layer
 {
-	matrix Hidden_layer = arma::randu(alpha, columns);
-	return Hidden_layer;
-}
+private:
+	Eigen::Matrix<double, rows, columns> layer;
 
-neural_net::Neural_net::Neural_net()
-{
-	hidden_layer = Hidden_layer_init();
-}
+public:
+	Visible_Layer()
+	{
+		layer = Eigen::MatrixXd::Random(rows, columns);
 
+		for (auto x : layer.rowwise())
+		{
+			for (auto y = x.begin(); y < x.end(); y++)
+			{
+				(*y > 0.5) ? (*y = 1) : (*y = -1);
+			}
+		}
+	}
+	double &operator()(int i, int j)
+	{
+		return layer(i, j);
+	}
+
+	friend ostream &operator<<(std::ostream &os, Visible_Layer const &m)
+	{
+		return os << m.layer;
+	}
+};
 #endif

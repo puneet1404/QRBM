@@ -5,20 +5,27 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
-using namespace std;
+#include<complex>
 
 const int rows = 1;
 const int columns = 3;
 const int alpha = 4;
 
 typedef arma::mat matrix;
+typedef std::complex<double> dcomplex;
 namespace neural_net
 {
+	struct stocastic_visible_layer
+	{
+		int state_vector=0;
+		dcomplex co_efficient=( 0, 0);
+	};
+	
 	// just a thing to call visible layer
 	struct visible_layer
 	{
 		matrix vis_lay = arma::randu(columns, 1);
-		matrix state_vector = arma::zeros(pow(2, columns), 1);
+		int state_vector=0;
 		void state_vector_init();
 	};
 	// a class to simmulate the nodes(number is alpha) and the input 1d chain is column
@@ -33,12 +40,13 @@ namespace neural_net
 
 	public:
 		double E_loc();
-		matrix &visible_layer();
+		matrix &visible_layer();//done
 		matrix b = arma::randu(alpha, 1);
 		matrix a = arma::randu(columns, 1);
 		matrix hidden_layer;
-		double psi_s();
-		double psi_s(matrix &S);
+		double psi_s();//done
+		double psi_s(matrix &S);//done
+		double psi_s(int alpha);
 		Neural_net();
 	};
 }
@@ -81,8 +89,18 @@ double neural_net::Neural_net::psi_s(matrix &S)
 	return psi * exp(arma::as_scalar(a.t() * S));
 }
 
+double neural_net::Neural_net::psi_s(int alpha)
+{
+	matrix S=arma::zeros(columns,1);
+	int number = log2(alpha) +1;
+	for (size_t i = 1; i < columns+1; i++)
+	{
+		(alpha%2==1)?(S[columns-i]=-1):(S[columns-i]=1);
+		alpha =alpha>>1;
+	}
+	return psi_s(S);
 
-
+}
 
 
 
@@ -90,14 +108,10 @@ double neural_net::Neural_net::psi_s(matrix &S)
 //implimnetation for visible_layer struct 
 void neural_net::visible_layer::state_vector_init()
 {
-	int n=0;
 	vis_lay.for_each([](matrix::elem_type &m)
 							 { (m > 0.5) ? (m = -1) : (m = 1); });
 	for(auto i:vis_lay){
-		(i==1)?((n=n<<1)):((n=(n<<1)+1));
+		(i==1)?((state_vector=state_vector<<1)):((state_vector=(state_vector<<1)+1));
 	}
-	state_vector(n,0)=1;
-	cout<<state_vector<<"\n";
-
 }
 #endif

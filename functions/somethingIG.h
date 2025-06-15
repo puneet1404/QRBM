@@ -12,6 +12,7 @@ const int columns = 3;
 const int alpha = 4;
 
 typedef arma::mat matrix;
+typedef arma::cx_mat cmatrix;
 typedef std::complex<double> dcomplex;
 namespace neural_net
 {
@@ -19,6 +20,11 @@ namespace neural_net
 	{
 		int state_vector=0;
 		dcomplex co_efficient=( 0, 0);
+		stocastic_visible_layer(int stat_vec, dcomplex alpha=0)
+		{
+			state_vector=stat_vec;
+			co_efficient=0;
+		}
 	};
 	
 	// just a thing to call visible layer
@@ -37,6 +43,7 @@ namespace neural_net
 		visible_layer Vis_lay;
 		double decay_parameter = 0;
 		int n = 1;
+		matrix to_S(int n);
 
 	public:
 		double E_loc();
@@ -52,22 +59,30 @@ namespace neural_net
 }
 
 // implimentation
+
+
+//constructor 
+neural_net::Neural_net::Neural_net()
+{
+	Hidden_layer_init();
+	Vis_lay.state_vector_init();
+}
+
+
+//return visible layer as a object 
 matrix &neural_net::Neural_net::visible_layer()
 {
 	return Vis_lay.vis_lay;
 }
 
-neural_net::Neural_net::Neural_net()
-{
-	Hidden_layer_init();
-}
+//makes  the hidden layer and gives it random values;
 void neural_net::Neural_net::Hidden_layer_init()
 {
 	hidden_layer = arma::randu(alpha, columns);
 	b = arma::randu(b.n_rows, b.n_cols);
-	Vis_lay.state_vector_init();
 }
 
+///various implimnetations to calculate the probalility distribution; 
 double neural_net::Neural_net::psi_s()
 {
 	matrix m = hidden_layer * Vis_lay.vis_lay + b;
@@ -78,6 +93,8 @@ double neural_net::Neural_net::psi_s()
 	}
 	return psi * exp(arma::as_scalar(a.t() * visible_layer()));
 }
+
+//gives psi_s for a sfecific value of the input layer;
 double neural_net::Neural_net::psi_s(matrix &S)
 {
 	matrix m = hidden_layer * S + b;
@@ -89,7 +106,16 @@ double neural_net::Neural_net::psi_s(matrix &S)
 	return psi * exp(arma::as_scalar(a.t() * S));
 }
 
+//gives psi_s for specific statevector in the form of an integer 
 double neural_net::Neural_net::psi_s(int alpha)
+{
+	matrix S=to_S(alpha);
+	return psi_s(S);
+
+}
+
+//converts an integer into a visible layer vector 
+matrix neural_net::Neural_net:: to_S(int alpha)
 {
 	matrix S=arma::zeros(columns,1);
 	int number = log2(alpha) +1;
@@ -98,12 +124,15 @@ double neural_net::Neural_net::psi_s(int alpha)
 		(alpha%2==1)?(S[columns-i]=-1):(S[columns-i]=1);
 		alpha =alpha>>1;
 	}
-	return psi_s(S);
-
+	return S;
 }
 
+//calculation of local energy
+double neural_net::Neural_net::E_loc()
+{
+	unordered_map<int, stocastic_visible_layer> map;
 
-
+}
 
 //implimnetation for visible_layer struct 
 void neural_net::visible_layer::state_vector_init()

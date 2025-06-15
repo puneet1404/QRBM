@@ -18,9 +18,9 @@ int main()
 	neural_net::Neural_net hello;
 	
 	auto end = std::chrono::high_resolution_clock::now();
-	cout<<hello.hidden_layer<<"\n"<<hello.b<<"\n"<<hello.Vis_lay.vis_lay<<"\n"<<hello.psi_s();
-	
-	
+	cout<<"W=\n"<<hello.hidden_layer<<"\n"<<"b=\n"<<hello.b<<"\n"<<"s=\n"<<hello.visible_layer()<<"\n"<<"value of psi(s)="<<hello.psi_s();
+	int n =0;
+	cout<<"\n"<<((n<<1)+1);
 	// cin.get();
 	auto elapsed = end - start;
 	std::cout << "\nTime taken by main function: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << "milliseconds\n";

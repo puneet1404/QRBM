@@ -21,8 +21,7 @@ int main()
 	cout<<"W=\n"<<hello.hidden_layer<<"\n"<<"b=\n"<<hello.b<<"\n"<<"s=\n"<<hello.visible_layer()<<
 	"\n"<<"value of psi(s)="<<hello.psi_s(2)<<"\n"
 	<<"the value of int(s) is "<<hello.to_integer(hello.visible_layer())<<endl;
-	hello.E_loc();
-	cout<<hello.to_S(13);
+	cout<<hello.to_S(8);
 	auto elapsed = end - start;
 	std::cout << "\nTime taken by main function: " << std::chrono::duration_cast<std::chrono::milliseconds>(elapsed).count() << "milliseconds\n";
 }

@@ -9,10 +9,10 @@
 #include <unordered_map>
 
 const int columns = 1;
-const int rows = 5;
+const int rows = 3;
 const int alpha = 4;
-std::complex<double> coeff_sig_x = (1, 0);
-std::complex<double> coeff_sig_y = (0, -1);
+std::complex<double> coeff_sig_x = std::complex<double>(1, 0);
+std::complex<double> coeff_sig_y = std::complex<double>(0, -1);
 
 typedef arma::mat matrix;
 typedef arma::cx_mat cmatrix;
@@ -26,10 +26,10 @@ namespace neural_net
 		stocastic_visible_layer(int stat_vec, dcomplex alpha = 0)
 		{
 			state_vector = stat_vec;
-			co_efficient = 0;
+			co_efficient = alpha;
 		}
-		stocastic_visible_layer& operator+(stocastic_visible_layer & alpha);
-		stocastic_visible_layer& operator*(stocastic_visible_layer & alpha);
+		stocastic_visible_layer operator+(stocastic_visible_layer  alpha);
+		stocastic_visible_layer operator*(stocastic_visible_layer  alpha);
 	};
 
 	// just a thing to call visible layer
@@ -47,12 +47,12 @@ namespace neural_net
 		void Hidden_layer_init();
 		visible_layer Vis_lay;
 		double decay_parameter = 0;
-		void sigma(int location, char direc, matrix &config, std::vector<stocastic_visible_layer> map);
+		void sigma(int location, char direc, const matrix &config, std::vector<stocastic_visible_layer> map);
 		matrix to_S(int n);
-		int to_integer(matrix &S);
+		int to_integer(const matrix &S);
 		cmatrix to_S(stocastic_visible_layer alpha);
 		cmatrix to_state(stocastic_visible_layer alpha);
-		stocastic_visible_layer sigma(int location, char direc, matrix &config);
+		stocastic_visible_layer sigma(int location, char direc,const  matrix &config);
 
 	public:
 		matrix &visible_layer(); // done
@@ -145,7 +145,7 @@ cmatrix neural_net::Neural_net::to_S(stocastic_visible_layer alpha)
 }
 
 // from visible layer to an integer map (unique for a given set of lattice of size (n))
-int neural_net::Neural_net::to_integer(matrix &S)
+int neural_net::Neural_net::to_integer(const matrix &S)
 {
 	int n = 0;
 	for (int i = 0; i < S.n_rows; i++)
@@ -154,7 +154,7 @@ int neural_net::Neural_net::to_integer(matrix &S)
 	}
 	return n;
 }
-void neural_net::Neural_net::sigma(int location, char direc, matrix &config, std::vector<stocastic_visible_layer> map)
+void neural_net::Neural_net::sigma(int location, char direc,const matrix &config, std::vector<stocastic_visible_layer> map)
 {
 	int alpha = 1, beta = to_integer(config), place_holder, just_sign = 0;
 	if ((direc == 'x') || (direc == 'X'))
@@ -180,7 +180,7 @@ void neural_net::Neural_net::sigma(int location, char direc, matrix &config, std
 	}
 }
 
-neural_net::stocastic_visible_layer neural_net::Neural_net::sigma(int location, char direc, matrix &config)
+neural_net::stocastic_visible_layer neural_net::Neural_net::sigma(int location, char direc, const matrix &config)
 {
 	int alpha = 1, beta = to_integer(config), place_holder, just_sign = 0;
 	if ((direc == 'x') || (direc == 'X'))
@@ -188,6 +188,7 @@ neural_net::stocastic_visible_layer neural_net::Neural_net::sigma(int location, 
 		alpha = (alpha << (location % rows));
 		place_holder = alpha ^ beta;
 		stocastic_visible_layer m(place_holder, coeff_sig_x);
+		// std::cout<<(coeff_sig_x)<<"scalar value x\n";
 		return m;
 	}
 	if ((direc == 'y') || (direc == 'Y'))
@@ -197,18 +198,19 @@ neural_net::stocastic_visible_layer neural_net::Neural_net::sigma(int location, 
 		(beta < place_holder) ? (just_sign = 1) : (just_sign = -1);
 
 		stocastic_visible_layer m(place_holder, static_cast<double>(just_sign) * coeff_sig_y);
+		// std::cout<<static_cast<double>(just_sign) * coeff_sig_y<<"scalar value y\n";
 		return m;
 	}
-
 	else
 	{
-		stocastic_visible_layer m(to_integer(config), config(location, 0));
+		// std::cout<<arma::as_scalar(config(location%rows, 0))<<"scalar value z\n";
+		stocastic_visible_layer m(to_integer(config), arma::as_scalar(config(location%rows, 0)));
 		return m;
 	}
 }
 cmatrix neural_net::Neural_net::to_state(stocastic_visible_layer alpha)
 {
-	cmatrix M = arma::zeros(pow(2, rows), 1);
+	cmatrix M;
 	M(alpha.state_vector, 0) = 1;
 	M = alpha.co_efficient * M;
 	return M;
@@ -218,17 +220,29 @@ cmatrix neural_net::Neural_net::to_state(stocastic_visible_layer alpha)
 double neural_net::Neural_net::E_loc()
 {
 	std::vector<stocastic_visible_layer> map;
-	cmatrix ket_s_H = S_H_state_vector();
+	cmatrix bra_s_H = S_H_state_vector();
+	
 }
 
 // gives a state vector
 cmatrix neural_net::Neural_net::S_H_state_vector()
 {
-	cmatrix M; 
+	
+	cmatrix M;
+	M.zeros(pow(2,rows),1); 
+	std::vector<stocastic_visible_layer> alpha;
+	stocastic_visible_layer beta(to_integer(Vis_lay.vis_lay),0);
 	for (size_t i = 0; i < rows; i++)
 	{
-		
+		alpha.push_back(sigma(i,'x',Vis_lay.vis_lay));
+		beta = beta + (sigma(i, 'z',Vis_lay.vis_lay))*(sigma((i+1),'z',Vis_lay.vis_lay));
 	}
+for (auto i:alpha  )
+{
+	M(i.state_vector,0)+=i.co_efficient;
+}
+M(beta.state_vector,0)+=beta.co_efficient;
+return M;
 	
 }
 
@@ -249,7 +263,7 @@ void neural_net::visible_layer::state_vector_init()
 
 
 
-neural_net::stocastic_visible_layer& neural_net::stocastic_visible_layer::operator+(stocastic_visible_layer & alpha)
+neural_net::stocastic_visible_layer neural_net::stocastic_visible_layer::operator+(stocastic_visible_layer  alpha)
 {
 	if (alpha.state_vector==state_vector)
 	{
@@ -258,10 +272,10 @@ neural_net::stocastic_visible_layer& neural_net::stocastic_visible_layer::operat
 	}
 	else
 	{
-		std::cerr<<"error the states are diff and hence do not go together well ";
+		std::cerr<<"error the states are diff and hence do not go together well \n";
 	}
 }
-neural_net::stocastic_visible_layer& neural_net::stocastic_visible_layer::operator*(stocastic_visible_layer & alpha)
+neural_net::stocastic_visible_layer neural_net::stocastic_visible_layer::operator*(stocastic_visible_layer  alpha)
 {
 	if (alpha.state_vector==state_vector)
 	{
@@ -270,7 +284,7 @@ neural_net::stocastic_visible_layer& neural_net::stocastic_visible_layer::operat
 	}
 	else
 	{
-		std::cerr<<"error the states are diff and hence do not go together well ";
+		std::cerr<<"error the states are diff and hence do not go together well \n";
 	}
 }
 #endif

@@ -2,7 +2,7 @@
 #include <time.h>
 #include <iostream>
 #include <cmath>
-// #include"functions/somethingig.h"
+#include"functions/somethingig.h"
 #include "functions/ExactSol.h"
 using namespace std;
 
@@ -15,12 +15,17 @@ int main()
 	
 	auto start = std::chrono::high_resolution_clock::now();
 	
-	// neural_net::Neural_net hello;
+	neural_net::Neural_net hello;
+	cout<<hello.S_H_state_vector()<<"\n";
+	cout<<hello.visible_layer()<<"\n";
+	
+	
+	
 	number_of_sites =3;
 	hamiltoian_matrix matrix;
 	arma::cx_dmat hamiltonian = matrix.Hamiltonian;
 	arma::mat vector=arma::zeros(hamiltonian.n_cols,1);
-	vector(4,0)=1;
+	vector(5,0)=1;
 	cout<<hamiltonian*vector;
 	auto end = std::chrono::high_resolution_clock::now();
 	auto elapsed = end - start;

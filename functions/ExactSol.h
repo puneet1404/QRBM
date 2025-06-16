@@ -218,11 +218,10 @@ tuple<int, double> hamiltoian_matrix::min_eig_value()
 arma::cx_dmat hamiltoian_matrix::calc_hamiltonian()
 {
 	arma::cx_dmat hamiltonian = arma::zeros<arma::cx_dmat>(pow(dim,num),pow(dim,num));
-	// for (size_t i = 0; i < num; i++)
-	// {
-	// 	hamiltonian += Z[i]*Z[(i+1)%num];
-	// }
-    hamiltonian = (Z[0]);
+	for (size_t i = 0; i < num; i++)
+	{
+		hamiltonian += Z[i]*Z[(i+1)%num] +X[i];
+	}
 	return hamiltonian;
 }
 

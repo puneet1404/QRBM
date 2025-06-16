@@ -48,7 +48,7 @@ namespace neural_net
 		void sigma(int location, char direc, matrix &config, std::vector<stocastic_visible_layer> map);
 
 	public:
-		matrix &to_S(int n);
+		matrix to_S(int n);
 		int to_integer(matrix &S);
 		double E_loc();
 		matrix &visible_layer(); // done
@@ -100,7 +100,7 @@ double neural_net::Neural_net::psi_s()
 double neural_net::Neural_net::psi_s(matrix &S)
 {
 	std::cout<<"hehe2";
-	cout<< hidden_layer * S + b;
+	std::cout<< hidden_layer * S + b;
 	matrix m = hidden_layer * S + b;
 	std::cout<<"hehe3";
 	double psi = 1;
@@ -114,12 +114,12 @@ double neural_net::Neural_net::psi_s(matrix &S)
 // gives psi_s for specific statevector in the form of an integer
 double neural_net::Neural_net::psi_s(int alpha)
 {
-	std::cout<<"hehehe1";
-	return psi_s(to_S(alpha));
+	matrix S = to_S(alpha);
+	return psi_s(S);
 }
 
 // converts an integer into a visible layer vector
-matrix &neural_net::Neural_net::to_S(int alpha)
+matrix neural_net::Neural_net::to_S(int alpha)
 {
 	matrix S = arma::zeros(rows, 1);
 	int number = log2(alpha) + 1;
@@ -154,16 +154,14 @@ void neural_net::Neural_net::sigma(int location, char direc, matrix &config, std
 	{
 		alpha = (alpha << (location % rows));
 		place_holder = alpha ^ beta;
-		(beta > place_holder) ? (just_sign = -1) : (just_sign=1);
+		(beta < place_holder) ? (just_sign = -1) : (just_sign=1);
 
 		stocastic_visible_layer m(place_holder, static_cast<double>(just_sign)*coeff_sig_y);
 		map.push_back(m);
 	}
 	if ((direc == 'Z') || (direc == 'z'))
 	{
-		alpha = (alpha << (location % rows));
-		place_holder = alpha ^ beta;
-		stocastic_visible_layer m(to_integer(config), (1, 0));
+		stocastic_visible_layer m(to_integer(config), (1/2)*(1, 0));
 		map.push_back(m);
 	}
 }

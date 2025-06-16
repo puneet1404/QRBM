@@ -198,21 +198,32 @@ tuple<int, double> hamiltoian_matrix::min_eig_value()
     return a;
 }
 
-arma::cx_vec3 hamiltoian_matrix::magnetization_calc(int n)
+// arma::cx_vec3 hamiltoian_matrix::magnetization_calc(int n)
+// {
+//     arma::cx_dmat X_sum, Y_sum, Z_sum;
+//     double X_mag=0, Y_mag=0, Z_mag=0;
+//     for (size_t i = 0; i < num; i++)
+//     {
+//         X_sum += X[i];
+//         Y_sum += Y[i];
+//         Z_sum += Z[i];
+//     }
+//     (cout<<(arma::trans(Eigen_states.col(n)) * X_sum * Eigen_states.col(n)));
+//     cout<<((arma::trans(Eigen_states.col(n)) * Y_sum * Eigen_states.col(n)));
+//     cout<<((arma::trans(Eigen_states.col(n)) * Z_sum * Eigen_states.col(n)));
+//     // arma::cx_vec3 vec{X_mag, Y_mag, Z_mag};
+//     //return vec;
+// }
+
+arma::cx_dmat hamiltoian_matrix::calc_hamiltonian()
 {
-    arma::cx_dmat X_sum, Y_sum, Z_sum;
-    double X_mag=0, Y_mag=0, Z_mag=0;
-    for (size_t i = 0; i < num; i++)
-    {
-        X_sum += X[i];
-        Y_sum += Y[i];
-        Z_sum += Z[i];
-    }
-    (cout<<(arma::trans(Eigen_states.col(n)) * X_sum * Eigen_states.col(n)));
-    cout<<((arma::trans(Eigen_states.col(n)) * Y_sum * Eigen_states.col(n)));
-    cout<<((arma::trans(Eigen_states.col(n)) * Z_sum * Eigen_states.col(n)));
-    // arma::cx_vec3 vec{X_mag, Y_mag, Z_mag};
-    //return vec;
+	arma::cx_dmat hamiltonian = arma::zeros<arma::cx_dmat>(pow(dim,num),pow(dim,num));
+	// for (size_t i = 0; i < num; i++)
+	// {
+	// 	hamiltonian += Z[i]*Z[(i+1)%num];
+	// }
+    hamiltonian = (Z[0]);
+	return hamiltonian;
 }
 
 void hamiltoian_matrix::printx()

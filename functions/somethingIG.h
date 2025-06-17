@@ -5,8 +5,10 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
+#include <set>
 #include <complex>
 #include <unordered_map>
+#include<random>
 
 const int columns = 1;
 const int rows = 3;
@@ -19,18 +21,27 @@ typedef arma::cx_mat cmatrix;
 typedef std::complex<double> dcomplex;
 namespace neural_net
 {
-	
-	struct some_visible_layer
+	struct state_vector
+	{
+
+		std::unordered_map<int, dcomplex> maping;
+		state_vector(std::vector<int> place, std::vector<dcomplex> value);
+		state_vector(int place, dcomplex value);
+		state_vector operator+(state_vector m);
+		state_vector operator*(state_vector m);
+	};
+
+	struct constructed_layer
 	{
 		int state_vector = 0;
-		dcomplex co_efficient = (0, 0);
-		some_visible_layer(int stat_vec, dcomplex alpha = 0)
+		dcomplex co_efficient = dcomplex(0, 0);
+		constructed_layer(int stat_vec, dcomplex alpha = 0)
 		{
 			state_vector = stat_vec;
 			co_efficient = alpha;
 		}
-		some_visible_layer operator+(some_visible_layer  alpha);
-		some_visible_layer operator*(some_visible_layer  alpha);
+		constructed_layer operator+(constructed_layer alpha);
+		constructed_layer operator*(constructed_layer alpha);
 	};
 
 	// just a thing to call visible layer
@@ -46,14 +57,16 @@ namespace neural_net
 	private:
 		// this is the matrix which is multiplied to the column vector for the node values to be obtained
 		void Hidden_layer_init();
+		static std::random_device rd; 
 		visible_layer Vis_lay;
+		state_vector State_vector;
 		double decay_parameter = 0;
-		void sigma(int location, char direc, const matrix &config, std::vector<some_visible_layer> map);
+		void sigma(int location, char direc, const matrix &config, std::vector<constructed_layer> map);
 		matrix to_S(int n);
 		int to_integer(const matrix &S);
-		cmatrix to_S(some_visible_layer alpha);
-		cmatrix to_state(some_visible_layer alpha);
-		some_visible_layer sigma(int location, char direc,const  matrix &config);
+		cmatrix to_S(constructed_layer alpha);
+		cmatrix to_state(constructed_layer alpha);
+		constructed_layer sigma(int location, char direc, const matrix &config);
 
 	public:
 		matrix &visible_layer(); // done
@@ -138,7 +151,7 @@ matrix neural_net::Neural_net::to_S(int alpha)
 	return S;
 }
 
-cmatrix neural_net::Neural_net::to_S(some_visible_layer alpha)
+cmatrix neural_net::Neural_net::to_S(constructed_layer alpha)
 {
 	matrix m = to_S(alpha.state_vector);
 	cmatrix beta = alpha.co_efficient * m;
@@ -155,14 +168,14 @@ int neural_net::Neural_net::to_integer(const matrix &S)
 	}
 	return n;
 }
-void neural_net::Neural_net::sigma(int location, char direc,const matrix &config, std::vector<some_visible_layer> map)
+void neural_net::Neural_net::sigma(int location, char direc, const matrix &config, std::vector<constructed_layer> map)
 {
 	int alpha = 1, beta = to_integer(config), place_holder, just_sign = 0;
 	if ((direc == 'x') || (direc == 'X'))
 	{
 		alpha = (alpha << (location % rows));
 		place_holder = alpha ^ beta;
-		some_visible_layer m(place_holder, coeff_sig_x);
+		constructed_layer m(place_holder, 1);
 		map.push_back(m);
 	}
 	if ((direc == 'y') || (direc == 'Y'))
@@ -171,24 +184,19 @@ void neural_net::Neural_net::sigma(int location, char direc,const matrix &config
 		place_holder = alpha ^ beta;
 		(beta < place_holder) ? (just_sign = 1) : (just_sign = -1);
 
-		some_visible_layer m(place_holder, static_cast<double>(just_sign) * coeff_sig_y);
-		map.push_back(m);
-	}
-	else
-	{
-		some_visible_layer m(to_integer(config), config(location, 0));
+		constructed_layer m(place_holder, 1);
 		map.push_back(m);
 	}
 }
 
-neural_net::some_visible_layer neural_net::Neural_net::sigma(int location, char direc, const matrix &config)
+neural_net::constructed_layer neural_net::Neural_net::sigma(int location, char direc, const matrix &config)
 {
 	int alpha = 1, beta = to_integer(config), place_holder, just_sign = 0;
 	if ((direc == 'x') || (direc == 'X'))
 	{
 		alpha = (alpha << (location % rows));
 		place_holder = alpha ^ beta;
-		some_visible_layer m(place_holder, coeff_sig_x);
+		constructed_layer m(place_holder, coeff_sig_x);
 		// std::cout<<(coeff_sig_x)<<"scalar value x\n";
 		return m;
 	}
@@ -198,20 +206,20 @@ neural_net::some_visible_layer neural_net::Neural_net::sigma(int location, char 
 		place_holder = alpha ^ beta;
 		(beta < place_holder) ? (just_sign = 1) : (just_sign = -1);
 
-		some_visible_layer m(place_holder, static_cast<double>(just_sign) * coeff_sig_y);
+		constructed_layer m(place_holder, static_cast<double>(just_sign) * coeff_sig_y);
 		// std::cout<<static_cast<double>(just_sign) * coeff_sig_y<<"scalar value y\n";
 		return m;
 	}
 	else
 	{
 		// std::cout<<arma::as_scalar(config(location%rows, 0))<<"scalar value z\n";
-		some_visible_layer m(to_integer(config), arma::as_scalar(config(location%rows, 0)));
+		constructed_layer m(to_integer(config), arma::as_scalar(config(location % rows, 0)));
 		return m;
 	}
 }
-cmatrix neural_net::Neural_net::to_state(some_visible_layer alpha)
+cmatrix neural_net::Neural_net::to_state(constructed_layer alpha)
 {
-	cmatrix M;
+	cmatrix M(pow(2,rows),1);
 	M(alpha.state_vector, 0) = 1;
 	M = alpha.co_efficient * M;
 	return M;
@@ -220,31 +228,45 @@ cmatrix neural_net::Neural_net::to_state(some_visible_layer alpha)
 // calculation of local energy
 double neural_net::Neural_net::E_loc()
 {
-	std::vector<some_visible_layer> map;
-	cmatrix bra_s_H = S_H_state_vector();
+dcomplex E_loc;
+	std::vector<constructed_layer> non_zero_config_space;
+	for (size_t i = 0; i < rows; i++)
+	{
+		sigma(i,'x',Vis_lay.vis_lay,non_zero_config_space);
+	}
+	{
+		constructed_layer m(to_integer(Vis_lay.vis_lay),1);
+		non_zero_config_space.push_back(m);
+	}
+	cmatrix bra_s_H = (S_H_state_vector()).t();
+	std::uniform_int_distribution<int> dist(1,non_zero_config_space.size());
+	for (size_t i = 0; i < 100; i++)
+	{
+	constructed_layer alpha =non_zero_config_space[dist(rd)];
+		E_loc =arma::as_scalar(bra_s_H*to_state(alpha))*psi_s(alpha.state_vector)/psi_s();
+	}
 	
 }
 
 // gives a state vector
 cmatrix neural_net::Neural_net::S_H_state_vector()
 {
-	
+
 	cmatrix M;
-	M.zeros(pow(2,rows),1); 
-	std::vector<some_visible_layer> alpha;
-	some_visible_layer beta(to_integer(Vis_lay.vis_lay),0);
+	M.zeros(pow(2, rows), 1);
+	std::vector<constructed_layer> alpha;
+	constructed_layer beta(to_integer(Vis_lay.vis_lay), 0);
 	for (size_t i = 0; i < rows; i++)
 	{
-		alpha.push_back(sigma(i,'x',Vis_lay.vis_lay));
-		beta = beta + (sigma(i, 'z',Vis_lay.vis_lay))*(sigma((i+1),'z',Vis_lay.vis_lay));
+		alpha.push_back(sigma(i, 'x', Vis_lay.vis_lay));
+		beta = beta + (sigma(i, 'z', Vis_lay.vis_lay)) * (sigma((i + 1), 'z', Vis_lay.vis_lay));
 	}
-for (auto i:alpha  )
-{
-	M(i.state_vector,0)+=i.co_efficient;
-}
-M(beta.state_vector,0)+=beta.co_efficient;
-return M;
-	
+	for (auto i : alpha)
+	{
+		M(i.state_vector, 0) += i.co_efficient;
+	}
+	M(beta.state_vector, 0) += beta.co_efficient;
+	return M;
 }
 
 //! implimnetation for visible_layer struct
@@ -258,34 +280,65 @@ void neural_net::visible_layer::state_vector_init()
 	}
 }
 
-
-
-
-
-
-
-neural_net::some_visible_layer neural_net::some_visible_layer::operator+(some_visible_layer  alpha)
+neural_net::constructed_layer neural_net::constructed_layer::operator+(constructed_layer alpha)
 {
-	if (alpha.state_vector==state_vector)
+	if (alpha.state_vector == state_vector)
 	{
-		some_visible_layer m(alpha.state_vector,alpha.co_efficient+co_efficient);
+		constructed_layer m(alpha.state_vector, alpha.co_efficient + co_efficient);
 		return m;
 	}
 	else
 	{
-		std::cerr<<"error the states are diff and hence do not go together well \n";
+		std::cerr << "error the states are diff and hence do not go together well \n";
 	}
 }
-neural_net::some_visible_layer neural_net::some_visible_layer::operator*(some_visible_layer  alpha)
+neural_net::constructed_layer neural_net::constructed_layer::operator*(constructed_layer alpha)
 {
-	if (alpha.state_vector==state_vector)
+	if (alpha.state_vector == state_vector)
 	{
-		some_visible_layer m(alpha.state_vector,alpha.co_efficient*co_efficient);
+		constructed_layer m(alpha.state_vector, alpha.co_efficient * co_efficient);
 		return m;
 	}
 	else
 	{
-		std::cerr<<"error the states are diff and hence do not go together well \n";
+		std::cerr << "error the states are diff and hence do not go together well \n";
 	}
 }
+
+neural_net::state_vector::state_vector(std::vector<int> place, std::vector<dcomplex> value)
+{
+	if (place.size() == value.size())
+	{
+		for (size_t i = 0; i < place.size(); i++)
+		{
+			if (maping.find(place[i]) == maping.end())
+			{
+				maping.insert({place[i], value[i]});
+			}
+			else
+			{
+				maping[place[i]] += value[i];
+			}
+		}
+	}
+	else
+	{
+		std::cerr << "the number of place and dcomplex numbers are incompatible ie diff";
+	}
+}
+neural_net::state_vector::state_vector(int place, dcomplex value)
+{
+	if (maping.find(place) == maping.end())
+	{
+		maping.insert({place, value});
+	}
+	else
+	{
+		maping[place] += value;
+	}
+}
+neural_net::state_vector neural_net::state_vector::operator+(state_vector M)
+{
+}
+
 #endif

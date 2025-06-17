@@ -16,8 +16,9 @@ int main()
 	auto start = std::chrono::high_resolution_clock::now();
 	
 	neural_net::Neural_net hello;
-	cout<<hello.S_H_state_vector()<<"\n";
 	cout<<hello.visible_layer()<<"\n";
+	cout<<hello.S_H_state_vector()<<"\n";
+	cout<<hello.E_loc();
 	
 	
 	

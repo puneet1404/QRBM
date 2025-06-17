@@ -26,7 +26,7 @@ namespace neural_net
 
 		std::unordered_map<int, dcomplex> maping;
 		state_vector(std::vector<int> place, std::vector<dcomplex> value);
-		state_vector(int place, dcomplex value);
+		state_vector(int place=0, dcomplex value=0);
 		state_vector operator+(state_vector m);
 		state_vector operator*(state_vector m);
 	};
@@ -57,7 +57,7 @@ namespace neural_net
 	private:
 		// this is the matrix which is multiplied to the column vector for the node values to be obtained
 		void Hidden_layer_init();
-		static std::random_device rd; 
+		std::random_device rd; 
 		visible_layer Vis_lay;
 		state_vector State_vector;
 		double decay_parameter = 0;
@@ -89,6 +89,7 @@ neural_net::Neural_net::Neural_net()
 {
 	Hidden_layer_init();
 	Vis_lay.state_vector_init();
+
 }
 
 // return visible layer as a object
@@ -119,10 +120,7 @@ double neural_net::Neural_net::psi_s()
 // gives psi_s for a sfecific value of the input layer;
 double neural_net::Neural_net::psi_s(matrix &S)
 {
-	std::cout << "hehe2";
-	std::cout << hidden_layer * S + b;
 	matrix m = hidden_layer * S + b;
-	std::cout << "hehe3";
 	double psi = 1;
 	for (auto i : m)
 	{
@@ -242,10 +240,10 @@ dcomplex E_loc;
 	std::uniform_int_distribution<int> dist(1,non_zero_config_space.size());
 	for (size_t i = 0; i < 100; i++)
 	{
-	constructed_layer alpha =non_zero_config_space[dist(rd)];
+	constructed_layer alpha =non_zero_config_space[dist(rd)%rows];
 		E_loc =arma::as_scalar(bra_s_H*to_state(alpha))*psi_s(alpha.state_vector)/psi_s();
 	}
-	
+	return E_loc.imag();
 }
 
 // gives a state vector

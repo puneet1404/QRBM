@@ -11,8 +11,9 @@
 #include<random>
 
 const int columns = 1;
-const int rows = 3;
+const int rows = 10;
 const int alpha = 4;
+int E_loc_itt=30;
 std::complex<double> coeff_sig_x = std::complex<double>(1, 0);
 std::complex<double> coeff_sig_y = std::complex<double>(0, -1);
 
@@ -61,7 +62,7 @@ namespace neural_net
 		visible_layer Vis_lay;
 		state_vector State_vector;
 		double decay_parameter = 0;
-		void sigma(int location, char direc, const matrix &config, std::vector<constructed_layer> map);
+		void sigma(int location, char direc, const matrix &config, std::vector<constructed_layer>& map);
 		matrix to_S(int n);
 		int to_integer(const matrix &S);
 		cmatrix to_S(constructed_layer alpha);
@@ -78,11 +79,14 @@ namespace neural_net
 		double psi_s(matrix &S); // done
 		double psi_s(int alpha);
 		double E_loc();
+		void Hidden_variable_update();
+		void a_update();
+		void b_update();
 		Neural_net();
 	};
 }
 
-// implimentation
+// implimentation+
 
 // constructor
 neural_net::Neural_net::Neural_net()
@@ -166,7 +170,7 @@ int neural_net::Neural_net::to_integer(const matrix &S)
 	}
 	return n;
 }
-void neural_net::Neural_net::sigma(int location, char direc, const matrix &config, std::vector<constructed_layer> map)
+void neural_net::Neural_net::sigma(int location, char direc, const matrix &config, std::vector<constructed_layer> &map)
 {
 	int alpha = 1, beta = to_integer(config), place_holder, just_sign = 0;
 	if ((direc == 'x') || (direc == 'X'))
@@ -238,12 +242,12 @@ dcomplex E_loc;
 	}
 	cmatrix bra_s_H = (S_H_state_vector()).t();
 	std::uniform_int_distribution<int> dist(1,non_zero_config_space.size());
-	for (size_t i = 0; i < 100; i++)
+	for (size_t i = 0; i < E_loc_itt; i++)
 	{
 	constructed_layer alpha =non_zero_config_space[dist(rd)%rows];
-		E_loc =arma::as_scalar(bra_s_H*to_state(alpha))*psi_s(alpha.state_vector)/psi_s();
+		E_loc+=arma::as_scalar(bra_s_H*to_state(alpha))*(psi_s(alpha.state_vector)/psi_s());
 	}
-	return E_loc.imag();
+	return E_loc.real()/E_loc_itt;
 }
 
 // gives a state vector
@@ -300,6 +304,7 @@ neural_net::constructed_layer neural_net::constructed_layer::operator*(construct
 	else
 	{
 		std::cerr << "error the states are diff and hence do not go together well \n";
+		return -1;
 	}
 }
 

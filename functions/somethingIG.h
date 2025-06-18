@@ -29,7 +29,7 @@ namespace neural_net
 		state_vector(std::vector<int> place, std::vector<dcomplex> value);
 		state_vector(int place=0, dcomplex value=0);
 		state_vector operator+(state_vector m);
-		state_vector operator*(state_vector m);
+		state_vector operator*(state_vector m);//this is dot product where the right one is always the bra 
 	};
 
 	struct constructed_layer
@@ -68,7 +68,7 @@ namespace neural_net
 		cmatrix to_S(constructed_layer alpha);
 		cmatrix to_state(constructed_layer alpha);
 		constructed_layer sigma(int location, char direc, const matrix &config);
-
+		
 	public:
 		matrix &visible_layer(); // done
 		matrix b = arma::randu(alpha, 1);
@@ -230,7 +230,7 @@ cmatrix neural_net::Neural_net::to_state(constructed_layer alpha)
 // calculation of local energy
 double neural_net::Neural_net::E_loc()
 {
-dcomplex E_loc;
+	dcomplex E_loc;
 	std::vector<constructed_layer> non_zero_config_space;
 	for (size_t i = 0; i < rows; i++)
 	{
@@ -241,11 +241,14 @@ dcomplex E_loc;
 		non_zero_config_space.push_back(m);
 	}
 	cmatrix bra_s_H = (S_H_state_vector()).t();
-	std::uniform_int_distribution<int> dist(1,non_zero_config_space.size());
 	for (size_t i = 0; i < E_loc_itt; i++)
 	{
-	constructed_layer alpha =non_zero_config_space[dist(rd)%rows];
+		std::uniform_int_distribution<int> dist(0,non_zero_config_space.size());
+		int m =dist(rd);
+		constructed_layer alpha =non_zero_config_space[m];
 		E_loc+=arma::as_scalar(bra_s_H*to_state(alpha))*(psi_s(alpha.state_vector)/psi_s());
+		non_zero_config_space.erase(non_zero_config_space.begin()+m);
+		if(non_zero_config_space.size()==0){break;}
 	}
 	return E_loc.real()/E_loc_itt;
 }
@@ -253,7 +256,7 @@ dcomplex E_loc;
 // gives a state vector
 cmatrix neural_net::Neural_net::S_H_state_vector()
 {
-
+	
 	cmatrix M;
 	M.zeros(pow(2, rows), 1);
 	std::vector<constructed_layer> alpha;
@@ -271,7 +274,15 @@ cmatrix neural_net::Neural_net::S_H_state_vector()
 	return M;
 }
 
-//! implimnetation for visible_layer struct
+void neural_net::Neural_net::b_update()
+{
+
+	matrix O = to_S(Vis_lay.state_vector);
+	double eloc =E_loc();
+	matrix update_s_mat= O*O.t() - O.t();
+}
+
+//! implimnetation for structs
 void neural_net::visible_layer::state_vector_init()
 {
 	vis_lay.for_each([](matrix::elem_type &m)
@@ -343,5 +354,7 @@ neural_net::state_vector::state_vector(int place, dcomplex value)
 neural_net::state_vector neural_net::state_vector::operator+(state_vector M)
 {
 }
+
+
 
 #endif

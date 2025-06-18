@@ -68,7 +68,7 @@ namespace neural_net
 		cmatrix to_S(constructed_layer alpha);
 		cmatrix to_state(constructed_layer alpha);
 		constructed_layer sigma(int location, char direc, const matrix &config);
-		
+
 	public:
 		matrix &visible_layer(); // done
 		matrix b = arma::randu(alpha, 1);
@@ -277,7 +277,7 @@ cmatrix neural_net::Neural_net::S_H_state_vector()
 void neural_net::Neural_net::b_update()
 {
 
-	matrix O = to_S(Vis_lay.state_vector);
+	matrix O(rows,1);
 	double eloc =E_loc();
 	matrix update_s_mat= O*O.t() - O.t();
 }

@@ -62,12 +62,12 @@ namespace neural_net
 		visible_layer Vis_lay;
 		state_vector State_vector;
 		double decay_parameter = 0;
-		void sigma(int location, char direc, const matrix &config, std::vector<constructed_layer>& map);
+		void sigma(int location, char direc, const matrix &config, std::vector<state_vector>& map);
 		matrix to_S(int n);
 		int to_integer(const matrix &S);
-		cmatrix to_S(constructed_layer alpha);
-		cmatrix to_state(constructed_layer alpha);
-		constructed_layer sigma(int location, char direc, const matrix &config);
+		cmatrix to_S(state_vector alpha);
+		cmatrix to_state(state_vector alpha);
+		state_vector sigma(int location, char direc, const matrix &config);
 
 	public:
 		matrix &visible_layer(); // done
@@ -153,11 +153,12 @@ matrix neural_net::Neural_net::to_S(int alpha)
 	return S;
 }
 
-cmatrix neural_net::Neural_net::to_S(constructed_layer alpha)
+//!incomplete 
+//this method convert the state_vector to a config space vector but only if the state_vector has only one value
+cmatrix neural_net::Neural_net::to_S(state_vector alpha)
 {
-	matrix m = to_S(alpha.state_vector);
-	cmatrix beta = alpha.co_efficient * m;
-	return beta;
+	cmatrix m(rows,1);
+	return m;
 }
 
 // from visible layer to an integer map (unique for a given set of lattice of size (n))
@@ -170,14 +171,14 @@ int neural_net::Neural_net::to_integer(const matrix &S)
 	}
 	return n;
 }
-void neural_net::Neural_net::sigma(int location, char direc, const matrix &config, std::vector<constructed_layer> &map)
+void neural_net::Neural_net::sigma(int location, char direc, const matrix &config, std::vector<state_vector> &map)
 {
 	int alpha = 1, beta = to_integer(config), place_holder, just_sign = 0;
 	if ((direc == 'x') || (direc == 'X'))
 	{
 		alpha = (alpha << (location % rows));
 		place_holder = alpha ^ beta;
-		constructed_layer m(place_holder, 1);
+		state_vector m(place_holder, 1);
 		map.push_back(m);
 	}
 	if ((direc == 'y') || (direc == 'Y'))
@@ -186,19 +187,19 @@ void neural_net::Neural_net::sigma(int location, char direc, const matrix &confi
 		place_holder = alpha ^ beta;
 		(beta < place_holder) ? (just_sign = 1) : (just_sign = -1);
 
-		constructed_layer m(place_holder, 1);
+		state_vector m(place_holder, 1);
 		map.push_back(m);
 	}
 }
 
-neural_net::constructed_layer neural_net::Neural_net::sigma(int location, char direc, const matrix &config)
+neural_net::state_vector neural_net::Neural_net::sigma(int location, char direc, const matrix &config)
 {
 	int alpha = 1, beta = to_integer(config), place_holder, just_sign = 0;
 	if ((direc == 'x') || (direc == 'X'))
 	{
 		alpha = (alpha << (location % rows));
 		place_holder = alpha ^ beta;
-		constructed_layer m(place_holder, coeff_sig_x);
+		state_vector m(place_holder, coeff_sig_x);
 		// std::cout<<(coeff_sig_x)<<"scalar value x\n";
 		return m;
 	}
@@ -208,22 +209,23 @@ neural_net::constructed_layer neural_net::Neural_net::sigma(int location, char d
 		place_holder = alpha ^ beta;
 		(beta < place_holder) ? (just_sign = 1) : (just_sign = -1);
 
-		constructed_layer m(place_holder, static_cast<double>(just_sign) * coeff_sig_y);
+		state_vector m(place_holder, static_cast<double>(just_sign) * coeff_sig_y);
 		// std::cout<<static_cast<double>(just_sign) * coeff_sig_y<<"scalar value y\n";
 		return m;
 	}
 	else
 	{
 		// std::cout<<arma::as_scalar(config(location%rows, 0))<<"scalar value z\n";
-		constructed_layer m(to_integer(config), arma::as_scalar(config(location % rows, 0)));
+		state_vector m(to_integer(config), arma::as_scalar(config(location % rows, 0)));
 		return m;
 	}
 }
-cmatrix neural_net::Neural_net::to_state(constructed_layer alpha)
+
+//!incomplete
+//this method coverts a given state_vector to aa state vector in the following hilbert space 
+cmatrix neural_net::Neural_net::to_state(state_vector alpha)
 {
 	cmatrix M(pow(2,rows),1);
-	M(alpha.state_vector, 0) = 1;
-	M = alpha.co_efficient * M;
 	return M;
 }
 //! unfinished
@@ -231,13 +233,13 @@ cmatrix neural_net::Neural_net::to_state(constructed_layer alpha)
 double neural_net::Neural_net::E_loc()
 {
 	dcomplex E_loc;
-	std::vector<constructed_layer> non_zero_config_space;
+	std::vector<state_vector> non_zero_config_space;
 	for (size_t i = 0; i < rows; i++)
 	{
 		sigma(i,'x',Vis_lay.vis_lay,non_zero_config_space);
 	}
 	{
-		constructed_layer m(to_integer(Vis_lay.vis_lay),1);
+		state_vector m(to_integer(Vis_lay.vis_lay),1);
 		non_zero_config_space.push_back(m);
 	}
 	cmatrix bra_s_H = (S_H_state_vector()).t();
@@ -245,22 +247,22 @@ double neural_net::Neural_net::E_loc()
 	{
 		std::uniform_int_distribution<int> dist(0,non_zero_config_space.size());
 		int m =dist(rd);
-		constructed_layer alpha =non_zero_config_space[m];
+		state_vector alpha =non_zero_config_space[m];
 		E_loc+=arma::as_scalar(bra_s_H*to_state(alpha))*(psi_s(alpha.state_vector)/psi_s());
 		non_zero_config_space.erase(non_zero_config_space.begin()+m);
 		if(non_zero_config_space.size()==0){break;}
 	}
 	return E_loc.real()/E_loc_itt;
 }
-
+//!incomplete
 // gives a state vector
 cmatrix neural_net::Neural_net::S_H_state_vector()
 {
 	
 	cmatrix M;
 	M.zeros(pow(2, rows), 1);
-	std::vector<constructed_layer> alpha;
-	constructed_layer beta(to_integer(Vis_lay.vis_lay), 0);
+	std::vector<state_vector> alpha;
+	state_vector beta(to_integer(Vis_lay.vis_lay), 0);
 	for (size_t i = 0; i < rows; i++)
 	{
 		alpha.push_back(sigma(i, 'x', Vis_lay.vis_lay));

@@ -30,13 +30,14 @@ namespace neural_net
 		state_vector(int place=0, dcomplex value=0);
 		state_vector operator+(state_vector m);
 		state_vector operator*(state_vector m);//this is dot product where the right one is always the bra 
+		int state_int_value();
 	};
 
 	struct constructed_layer
 	{
 		int state_vector = 0;
 		dcomplex co_efficient = dcomplex(0, 0);
-		constructed_layer(int stat_vec, dcomplex alpha = 0)
+		constructed_layer(int stat_vec, dcomplex alpha = 1)
 		{
 			state_vector = stat_vec;
 			co_efficient = alpha;
@@ -65,7 +66,7 @@ namespace neural_net
 		void sigma(int location, char direc, const matrix &config, std::vector<state_vector>& map);
 		matrix to_S(int n);
 		int to_integer(const matrix &S);
-		cmatrix to_S(state_vector alpha);
+		matrix to_S(state_vector alpha);
 		cmatrix to_state(state_vector alpha);
 		state_vector sigma(int location, char direc, const matrix &config);
 
@@ -153,11 +154,12 @@ matrix neural_net::Neural_net::to_S(int alpha)
 	return S;
 }
 
-//!incomplete 
+
 //this method convert the state_vector to a config space vector but only if the state_vector has only one value
-cmatrix neural_net::Neural_net::to_S(state_vector alpha)
+matrix neural_net::Neural_net::to_S(state_vector alpha)
 {
-	cmatrix m(rows,1);
+	matrix m(rows,1);
+	m=to_S(alpha.state_int_value());
 	return m;
 }
 
@@ -221,18 +223,23 @@ neural_net::state_vector neural_net::Neural_net::sigma(int location, char direc,
 	}
 }
 
-//!incomplete
+//!incomplete //sorta complete 
 //this method coverts a given state_vector to aa state vector in the following hilbert space 
 cmatrix neural_net::Neural_net::to_state(state_vector alpha)
 {
 	cmatrix M(pow(2,rows),1);
+	for ( auto i : alpha.maping )
+	{
+	M(i.first)+=i.second;
+	}
+	
 	return M;
 }
 //! unfinished
 // calculation of local energy
 double neural_net::Neural_net::E_loc()
 {
-	dcomplex E_loc;
+	dcomplex E_loc =0;
 	std::vector<state_vector> non_zero_config_space;
 	for (size_t i = 0; i < rows; i++)
 	{
@@ -248,13 +255,13 @@ double neural_net::Neural_net::E_loc()
 		std::uniform_int_distribution<int> dist(0,non_zero_config_space.size());
 		int m =dist(rd);
 		state_vector alpha =non_zero_config_space[m];
-		E_loc+=arma::as_scalar(bra_s_H*to_state(alpha))*(psi_s(alpha.state_vector)/psi_s());
+		E_loc+=arma::as_scalar(bra_s_H*to_state(alpha))*(psi_s(alpha.state_int_value())/psi_s());
 		non_zero_config_space.erase(non_zero_config_space.begin()+m);
 		if(non_zero_config_space.size()==0){break;}
 	}
 	return E_loc.real()/E_loc_itt;
 }
-//!incomplete
+//!incomplete//sort of complete 
 // gives a state vector
 cmatrix neural_net::Neural_net::S_H_state_vector()
 {
@@ -262,7 +269,7 @@ cmatrix neural_net::Neural_net::S_H_state_vector()
 	cmatrix M;
 	M.zeros(pow(2, rows), 1);
 	std::vector<state_vector> alpha;
-	state_vector beta(to_integer(Vis_lay.vis_lay), 0);
+	state_vector beta(to_integer(Vis_lay.vis_lay), 1);
 	for (size_t i = 0; i < rows; i++)
 	{
 		alpha.push_back(sigma(i, 'x', Vis_lay.vis_lay));
@@ -270,18 +277,15 @@ cmatrix neural_net::Neural_net::S_H_state_vector()
 	}
 	for (auto i : alpha)
 	{
-		M(i.state_vector, 0) += i.co_efficient;
+		M(i.state_int_value(), 0) += i[i.state_int_value()];
 	}
-	M(beta.state_vector, 0) += beta.co_efficient;
+	M(beta.state_int_value(), 0) += [beta.state_int_value()];
 	return M;
 }
-
+//!incomplete
 void neural_net::Neural_net::b_update()
 {
 
-	matrix O(rows,1);
-	double eloc =E_loc();
-	matrix update_s_mat= O*O.t() - O.t();
 }
 
 //! implimnetation for structs
@@ -357,6 +361,23 @@ neural_net::state_vector neural_net::state_vector::operator+(state_vector M)
 {
 }
 
+
+int neural_net::state_vector::state_int_value()
+{
+	if(maping.size()==1)
+	{
+		for (auto i : maping)
+		{
+			return i.first;
+		}
+		
+	}
+	else
+	{
+		cerr<<"wrong no of elements";
+		return -1;
+	}
+}
 
 
 #endif

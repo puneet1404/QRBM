@@ -6,52 +6,64 @@
 #include <armadillo>
 #include <random>
 #include <matplot/matplot.h>
-// #include "functions/ExactSol.h"
+#include "functions/ExactSol.h"
 #include "functions/somethingig2.h"
 using namespace std;
 
 #define Number 10
+void plot(vector<double> a, vector<double> b, vector<double> c, int i)
+{
+	using namespace matplot;
+	plot(a, b, "3");
+	hold(on);
+	plot(a, c, "-o-");
+	matplot::legend({"E loc", "E loc avg"});
+	save("./data/image" + to_string(i) + ".png");
+	cla();
+}
 
 int main()
 {
 	std::random_device rd;
-	uniform_int_distribution<int> dist(0,pj::row-1);
+	uniform_int_distribution<int> dist(0, pj::row - 1);
 	auto start = std::chrono::high_resolution_clock::now();
 
-	vector<double> e_loc, e_loc_avg, n;
 	pj::row = 10;
-	pj::visible_layer VL;
+	pj::visible_layer VL, VL2 = VL;
 	pj::weights W;
-	cout<<W.W;
-	cout << pj::E_loc(VL, W) << endl;
-	for (size_t i = 0; i < 100; i++)
-	{
-		e_loc.push_back((pj::E_loc(VL,W)));
-		e_loc_avg.push_back(pj::E_loc_avg(VL,W));
-		n.push_back(i);
-		VL.flip(dist(rd));	
-	}
-	cout << W.a;
-	cout <<"e_loc="<< pj::E_loc(VL, W)<<endl;
-	// e_loc.push_back(pj::E_loc(VL,W));
-	// n.push_back(i);
-	// e_loc_avg.push_back(pj::E_loc_avg(VL,W,100));
+
+	double alpha=pj::E_loc_avg(VL, W), beta=0;
+	int gama=0;
+
+	cout << alpha << endl;
 	
-	{
-		using namespace matplot;
-		plot(n, e_loc,"-o");
-		hold(on);
-		plot(n,e_loc_avg,"--");
-		matplot::legend({"E loc", "E loc avg"});
-		cin.get();
-	}
-	// while (TRUE)
+	vector<double> e_loc, e_loc_avg, n;
+	VL = VL2;
+	for (size_t j = 0; j < 1000; j++)
 	{
 		/* code */
+		
+		for(size_t i = 0; i < 1000; i++)
+		{
+			cout<<j<<"\n";
+			pj::a_update(VL, W);
+			// std::cout <<alpha<< "\n";
+		}
+		n.push_back(gama);
+		gama++;
+		e_loc.push_back(alpha);
+		VL.flip(dist(rd));
+		alpha=pj::E_loc_avg(VL, W);
 	}
-	
+	{
+		using namespace matplot;
+		plot(n,e_loc,"--");
+		save("./debug.png");
+		cin.get();
+	}
+	// plot(n,e_loc,e_loc_avg,i);
+
 	// number_of_sites =10;
-	// hamiltoian_matrix matrix;
 	// arma::cx_dmat hamiltonian = matrix.Hamiltonian;
 	// arma::mat vector=arma::zeros(hamiltonian.n_cols,1);
 	// vector(5,0)=1;

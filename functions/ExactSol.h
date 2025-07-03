@@ -10,7 +10,7 @@
 #include <complex>
 #include <set>
 
-int number_of_sites(4);
+int number_of_sites(10);
 int dim(2);
 std::complex<double> a(0, 1);    // just a stand in for comple no i;
 const double magnetic_field = 1; // for hamiltonian equation

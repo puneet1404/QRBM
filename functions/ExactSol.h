@@ -56,7 +56,7 @@ public:
     void printy();
     void printz();
     double min_eig_value_per_site();
-    tuple<int, double> min_eig_value();
+    double min_eig_value();
     arma::cx_vec3 magnetization_calc(int i);
 };
 
@@ -182,7 +182,7 @@ double hamiltoian_matrix::min_eig_value_per_site()
     return lowest_value / num;
 }
 
-tuple<int, double> hamiltoian_matrix::min_eig_value()
+double hamiltoian_matrix::min_eig_value()
 {
     double lowest_value = Eigen_values[0];
     int n = 0;
@@ -194,8 +194,7 @@ tuple<int, double> hamiltoian_matrix::min_eig_value()
             lowest_value = Eigen_values[i];
         }
     }
-    tuple<int, double> a = make_tuple(n, lowest_value);
-    return a;
+    return lowest_value;
 }
 
 // arma::cx_vec3 hamiltoian_matrix::magnetization_calc(int n)

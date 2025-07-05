@@ -25,9 +25,16 @@ namespace pj
 
     // defines the paramemeter of the sim
     int col = 1;
-    int row = 100;
-    int alpha = 2;
-    long double gama = 1;
+    int row = 10;
+    int alpha = 4;
+    long double gama()
+    {
+        static double gama=1;
+        gama=0.99*gama;
+        gama=(gama<pow(10,-2))?(pow(10,-2)):(gama);
+        return gama;
+        
+    }
 
     // parameters of the hamil
     long double h = 1;
@@ -51,13 +58,12 @@ namespace pj
             a = arma::randu(row, 1);
             b = arma::randu(alpha, 1);
         }
-        void  operator/(double n)
+        void operator/(double n)
         {
-            W=W/n;
-            a=a/n;
-            b=b/n;
+            W = W / n;
+            a = a / n;
+            b = b / n;
         }
-
     };
     struct visible_layer
     {
@@ -82,6 +88,13 @@ namespace pj
         M = w.b + w.W * VL.S;
         return M;
     }
+    mat tanh_matrix(const visible_layer &vl, const weights &w)
+    {
+        mat b = theta_matrix(vl, w);
+        b.for_each([](auto &i)
+                   { i = tanh(i); });
+        return b;
+    }
 
     //! delete this
     double sig_i_a_i(visible_layer VL, const weights &WEI)
@@ -97,14 +110,9 @@ namespace pj
     void bruh(long double a)
     {
         if (std::isnan(a))
-        {
-            {
-                using namespace matplot;
-                plot(int_n, somevar);
-                save("./data/debug.png");
-            }
-            throw runtime_error("stfu");
-        }
+            throw runtime_error("nan");
+        if (std::isinf(a))
+            throw runtime_error("inf");
     }
 
     long double psi(visible_layer VL, const weights &WEI) // to calculate the probability psi(s) for a given weights and visible layers
@@ -118,9 +126,10 @@ namespace pj
         // cosh theta implimentation
         long double cosh_theta = 1;
         mat m = theta_matrix(VL, WEI);
+        m.for_each([](auto &m ){m=cosh(m);});
         for (size_t i = 0; i < alpha; i++)
         {
-            cosh_theta = 2 * cosh_theta * cosh(m(i, 0));
+            cosh_theta = 2 * cosh_theta * (m(i, 0));
         }
         // if (cosh_theta>1000)
         // {
@@ -129,11 +138,11 @@ namespace pj
         // }
         bruh(cosh_theta);
         bruh(sig_i_a_i);
-        psi = cosh_theta * exp(sig_i_a_i);
+        psi = log(cosh_theta) + (sig_i_a_i);
         somevar.push_back(log(psi));
         int_n.push_back((alpksp));
         alpksp++;
-        return log(psi);
+        return (psi);
     }
     visible_layer sampler(visible_layer VL, std::random_device &rd = pj::rd)
     {
@@ -144,13 +153,13 @@ namespace pj
 
     long double p_ratio(visible_layer VL, visible_layer VL2, const weights &w)
     {
-        bruh(psi(VL, w) / psi(VL2, w));
         double a = psi(VL, w), b = psi(VL2, w), c = a / b;
+        bruh(psi(VL, w) / psi(VL2, w));
 
         return c;
     }
 
-    long double E_loc(visible_layer VL, weights W)
+    long double E_loc(visible_layer VL, const weights& W)
     {
 
         // the hamiltonian is h*sum(sig_x)+ j*sum(sig_z(i)*sig_z(i+1))
@@ -164,12 +173,10 @@ namespace pj
             m.flip(i);
         }
         bruh(E_loc);
-        if (std::isinf(E_loc))                       //! delete this
-            throw runtime_error("shoul have known"); //! delete this;
         return E_loc;
     }
 
-    long double E_loc_avg(const visible_layer VL, const weights &W, int itt_no = 100,
+    long double E_loc_avg(const visible_layer VL, const weights &W, int itt_no = 1000,
                           std::random_device &rd = pj::rd)
     {
         std::uniform_int_distribution<int> dist_int(0, row - 1);
@@ -182,49 +189,28 @@ namespace pj
                       VL3 = VL;
         for (size_t i = 0; i < itt_no; i++)
         {
-            VL2 = sampler(VL);
+            VL2 = sampler(VL2);
             e_loc += E_loc(VL2, W);
             n++;
         }
-
-        // std::cout << "e_loc=" << e_loc << std::std::std::endl;
-        // for (size_t i = 0; i < itt_no; i++) // itt for markov chain
-        // {
-        //     b = dist_int(rd);
-        //     VL2 =sampler(VL);
-        //     if (E_loc(VL2, W) < E_loc(VL3, W)) // if energyis less the sol is accepted
-        //     {
-        //         VL3 = VL2;
-        //         e_loc += E_loc(VL2, W);
-        //         // std::cout<<"E_loc=" <<E_loc(VL2, W)<<"\n";
-        //         n++;
-        //         continue;
-        //     }
-        //     else // if energy is more a coinn is tossed and is accepted if the prob is accepted
-        //     {
-        //         {
-        //             e_loc += E_loc(VL2, W);
-        //             // std::cout<<"E_loc=" <<E_loc(VL2, W)<<"\n";
-        //             VL3 = VL2;
-        //             n++;
-        //             continue;
-        //         }
-        //     }
-        // }
         bruh(e_loc / n);
         return e_loc / n;
     }
-    void a_update(visible_layer vl, weights &w, int N = 1)
+    mat a_update(visible_layer vl, const weights &w, int N = 1000)
     {
+        bruh(arma::norm(w.a));
+        bruh(arma::norm(w.b));
+        bruh(arma::norm(w.W));
+
         double lamda = pow(10, -2);
         // lamda = (a < pow(10, -4)) ? (pow(10, -4)) : (a);
         mat O, OT_O, OT, O_O, E_OT,
             S, F, a_n, i = arma::eye(row, row);
-        O = sampler(vl).S.t();
-        OT = sampler(vl).S;
-        O_O = sampler(vl).S;
-        OT_O = (O_O) * (O_O.t());
-        E_OT = E_loc(vl, w) * sampler(vl).S;
+        O = sampler(vl).S.t();               // 1 X row
+        OT = sampler(vl).S;                  // row X 1
+        O_O = sampler(vl).S;                 // row X 1
+        OT_O = (O_O) * (O_O.t());            // row X row
+        E_OT = E_loc(vl, w) * sampler(vl).S; // row X 1
         for (size_t i = 1; i < N; i++)
         {
             O += sampler(vl).S.t();
@@ -236,25 +222,93 @@ namespace pj
         long double e_loc = E_loc_avg(vl, w);
 
         S = (OT_O / N) - ((OT * O / pow(N, 2)));
+        S = S - lamda * arma::diagmat(S);
+        F = (E_OT / N) - e_loc * OT / N;
+        double update = arma::norm((arma::pinv(S)) * F);
+        // std::cout << "a\n"
+        //           << arma::pinv(S) * F << "\n";
+
+        // if (update > pow(10, -3))
+        mat m = w.a - gama() * (arma::pinv(S)) * F /update;
+        return m;
+    }
+    mat w_update(visible_layer vl, const weights &w, int N = 1000)
+    {
+
+        static double lamda = pow(10,1), a = 100;
+        a = a * 0.9;
+        lamda = (a < pow(10, -4)) ? (pow(10, -4)) : (a);
+        mat O, OT_O, OT, O_O, E_OT,
+            S, F, i = arma::eye(row, row),
+                  theta = theta_matrix(vl, w);
+
+        visible_layer rough = sampler(vl);
+        mat tanh_theta = tanh_matrix(vl, w);
+
+        O = (rough.S * (tanh_theta.t())).t(); // row X 1 * 1 X alpha = row X alpha.t() = alpha X row r
+        OT = (rough.S * (tanh_theta.t()));
+        // row X alpha
+        OT_O = ((rough.S * (tanh_theta.t()))) *
+               ((rough.S * (tanh_theta.t())).t()); // row X row
+        E_OT = E_loc(vl, w) *
+               (rough.S * (tanh_theta.t())); // alpha X row
+        for (size_t i = 1; i < N; i++)
+        {
+            rough = sampler(vl);
+            tanh_theta = tanh_matrix(rough, w);
+            O += (rough.S * (tanh_theta.t())).t();
+            OT += (rough.S * (tanh_theta.t()));
+            OT_O += (rough.S * (tanh_theta.t())) * (rough.S * (tanh_theta.t())).t(); // row X row
+            E_OT += E_loc(vl, w) * (rough.S * (tanh_theta.t()));
+        }
+        long double e_loc = E_loc_avg(vl, w);
+
+        S = (OT_O / N) - ((OT * O / pow(N, 2))); //
         S = S - lamda * i;
         F = (E_OT / N) - e_loc * OT / N;
-        // std::cout << "norm=" << arma::norm(gama * (arma::pinv(S)) * F) << endl;
-        double update = arma::norm(gama * (arma::pinv(S)) * F);
-        // if (std::isnan(arma::norm(gama * (arma::pinv(S)) * F)))
-        // {
-        //     {
-        //         using namespace matplot;
-        //         plot(int_n, somevar);
-        //         hold(on);
-        //         save("./data/debug.png");
-        //     }
-        //     throw runtime_error("stfu");
-        // }
-        w.a = w.a + gama * (arma::pinv(S)) * F/update;
+        double update = arma::norm((arma::pinv(S)) * F);
+        // std::cout << "w\n"
+        //           << arma::pinv(S) * F << "\n";
+        // if (update > pow(10, -3))
+        mat m  = w.W - gama() * ((arma::pinv(S)) * F).t()/update;
+        return m;
     }
-    void w_update(visible_layer vl, weights w)
+    mat b_update(visible_layer vl,const weights &w, int N = 1000)
     {
-    
+        static double lamda = pow(10, -2), a = 100;
+        a = a * 0.9;
+        lamda = (a < pow(10, -4)) ? (pow(10, -4)) : (a);
+        mat O, OT_O, OT, O_O, E_OT,
+            S, F, i = arma::eye(alpha, alpha),
+                  theta = theta_matrix(vl, w);
+        visible_layer rough = (vl);
+        mat tanh_theta = tanh_matrix(rough, w);
+
+        O = tanh_theta.t();               // 1 X alpha
+        OT = tanh_theta;                  // alpha X 1
+        O_O = tanh_theta;                 // alpha X 1
+        OT_O = (O_O) * (O_O.t());         // alpha X alpha
+        E_OT = E_loc(vl, w) * tanh_theta; // alpha X 1
+        for (size_t i = 1; i < N; i++)
+        {
+            rough = sampler(vl);
+            tanh_theta = tanh_matrix(rough, w);
+            O += tanh_theta.t();
+            OT += tanh_theta;
+            O_O = tanh_theta;
+            OT_O += (O_O) * (O_O.t());
+            E_OT += E_loc(vl, w) * tanh_theta;
+        }
+        long double e_loc = E_loc_avg(vl, w);
+
+        S = (OT_O / N) - ((OT * O / (N)*N)); // alpha X alpha
+        S = S - lamda * arma::diagmat(S);
+        F = (E_OT / N) - e_loc * OT / N;
+        double update = arma::norm((arma::pinv(S)) * F);
+        // std::cout << "b\n"
+                //   << arma::pinv(S) * F << "\n";
+        mat m = w.b - gama() * ((arma::pinv(S)) * F) / update;
+        return m;
     }
 
 }

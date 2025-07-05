@@ -373,10 +373,10 @@ int neural_net::state_vector::state_int_value()
 		
 	}
 	else
-	{
-		cerr<<"wrong no of elements";
-		return -1;
-	}
+	// {
+	// 	cerr<<"wrong no of elements";
+	// 	return -1;
+	// }
 }
 
 

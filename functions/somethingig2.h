@@ -7,6 +7,7 @@
 #include <vector>
 #include <iostream>
 #include <cmath>
+#include <omp.h>
 #include <set>
 #include <complex>
 #include <unordered_map>
@@ -26,7 +27,8 @@ namespace pj
     // defines the paramemeter of the sim
     int col = 1;
     int row = 10;
-    int alpha = 4;
+    int alpha = 2;
+    int hid_node_num = alpha*row;
     long double gama()
     {
         static double gama=1;
@@ -37,13 +39,12 @@ namespace pj
     }
 
     // parameters of the hamil
-    long double h = 1;
+    long double h = 0.5;
     long double j = 1;
     std::random_device rd;
 
     // debuging
     int alpksp = 1;
-    ;
     vector<double> int_n, somevar;
 
     const int dim = pow(2, row);
@@ -54,9 +55,9 @@ namespace pj
         mat b;
         weights()
         {
-            W = arma::randu(alpha, row);
+            W = arma::randu(hid_node_num, row);
             a = arma::randu(row, 1);
-            b = arma::randu(alpha, 1);
+            b = arma::randu(hid_node_num, 1);
         }
         void operator/(double n)
         {
@@ -76,7 +77,7 @@ namespace pj
         void flip(int i)
         {
 
-            S(i % row, 0) = -S(i % row, 0);
+            S(i, 0) = -S(i, 0);
             // std::cout << "flip\n"
             //           << S(i, 0);
         }
@@ -84,7 +85,7 @@ namespace pj
 
     mat theta_matrix(const visible_layer &VL, const weights &w)
     {
-        mat M(alpha, 1);
+        mat M(hid_node_num, 1);
         M = w.b + w.W * VL.S;
         return M;
     }
@@ -127,7 +128,7 @@ namespace pj
         long double cosh_theta = 1;
         mat m = theta_matrix(VL, WEI);
         m.for_each([](auto &m ){m=cosh(m);});
-        for (size_t i = 0; i < alpha; i++)
+        for (size_t i = 0; i < hid_node_num; i++)
         {
             cosh_theta = 2 * cosh_theta * (m(i, 0));
         }
@@ -167,17 +168,15 @@ namespace pj
         visible_layer m = VL;
         for (size_t i = 0; i < row; i++)
         {
-            mat l = m.S;
             m.flip(i);
-            E_loc += VL.S(i % row, 0) * VL.S((i + 1) % row) + h * p_ratio(m, VL, W);
+            E_loc += j*VL.S(i % row, 0) * VL.S((i + 1) % row) + h * p_ratio(m, VL, W);
             m.flip(i);
         }
         bruh(E_loc);
         return E_loc;
     }
 
-    long double E_loc_avg(const visible_layer VL, const weights &W, int itt_no = 1000,
-                          std::random_device &rd = pj::rd)
+    long double E_loc_avg(const visible_layer VL, const weights &W, int itt_no = 1000,std::random_device &rd = pj::rd)
     {
         std::uniform_int_distribution<int> dist_int(0, row - 1);
         std::uniform_real_distribution<long double> dist_real(0, 1);
@@ -206,20 +205,23 @@ namespace pj
         // lamda = (a < pow(10, -4)) ? (pow(10, -4)) : (a);
         mat O, OT_O, OT, O_O, E_OT,
             S, F, a_n, i = arma::eye(row, row);
+
+        visible_layer vl2=vl;
         O = sampler(vl).S.t();               // 1 X row
         OT = sampler(vl).S;                  // row X 1
         O_O = sampler(vl).S;                 // row X 1
         OT_O = (O_O) * (O_O.t());            // row X row
         E_OT = E_loc(vl, w) * sampler(vl).S; // row X 1
-        for (size_t i = 1; i < N; i++)
+        for (size_t j = 1; j < N; j++)
         {
-            O += sampler(vl).S.t();
-            OT += sampler(vl).S;
-            O_O = sampler(vl).S;
+            vl2=sampler(vl2);
+            O += sampler(vl2).S.t();
+            OT += sampler(vl2).S;
+            O_O = sampler(vl2).S;
             OT_O += (O_O) * (O_O.t());
-            E_OT += E_loc(vl, w) * sampler(vl).S;
+            E_OT += E_loc(vl2, w) * sampler(vl2).S;
         }
-        long double e_loc = E_loc_avg(vl, w);
+        long double e_loc = E_loc_avg(vl2, w);
 
         S = (OT_O / N) - ((OT * O / pow(N, 2)));
         S = S - lamda * arma::diagmat(S);
@@ -245,14 +247,15 @@ namespace pj
         visible_layer rough = sampler(vl);
         mat tanh_theta = tanh_matrix(vl, w);
 
-        O = (rough.S * (tanh_theta.t())).t(); // row X 1 * 1 X alpha = row X alpha.t() = alpha X row r
+        O = (rough.S * (tanh_theta.t())).t(); // row X 1 * 1 X hid_node_num = row X hid_node_num.t() = hid_node_num X row r
         OT = (rough.S * (tanh_theta.t()));
-        // row X alpha
+        // row X hid_node_num
         OT_O = ((rough.S * (tanh_theta.t()))) *
                ((rough.S * (tanh_theta.t())).t()); // row X row
         E_OT = E_loc(vl, w) *
-               (rough.S * (tanh_theta.t())); // alpha X row
-        for (size_t i = 1; i < N; i++)
+               (rough.S * (tanh_theta.t())); // hid_node_num X row
+        #pragma omp parallel for
+        for (size_t j = 1; j < N; j++)
         {
             rough = sampler(vl);
             tanh_theta = tanh_matrix(rough, w);
@@ -279,17 +282,17 @@ namespace pj
         a = a * 0.9;
         lamda = (a < pow(10, -4)) ? (pow(10, -4)) : (a);
         mat O, OT_O, OT, O_O, E_OT,
-            S, F, i = arma::eye(alpha, alpha),
+            S, F, i = arma::eye(hid_node_num, hid_node_num),
                   theta = theta_matrix(vl, w);
         visible_layer rough = (vl);
         mat tanh_theta = tanh_matrix(rough, w);
 
-        O = tanh_theta.t();               // 1 X alpha
-        OT = tanh_theta;                  // alpha X 1
-        O_O = tanh_theta;                 // alpha X 1
-        OT_O = (O_O) * (O_O.t());         // alpha X alpha
-        E_OT = E_loc(vl, w) * tanh_theta; // alpha X 1
-        for (size_t i = 1; i < N; i++)
+        O = tanh_theta.t();               // 1 X hid_node_num
+        OT = tanh_theta;                  // hid_node_num X 1
+        O_O = tanh_theta;                 // hid_node_num X 1
+        OT_O = (O_O) * (O_O.t());         // hid_node_num X hid_node_num
+        E_OT = E_loc(vl, w) * tanh_theta; // hid_node_num X 1
+        for (size_t j = 1; j < N; j++)
         {
             rough = sampler(vl);
             tanh_theta = tanh_matrix(rough, w);
@@ -301,7 +304,7 @@ namespace pj
         }
         long double e_loc = E_loc_avg(vl, w);
 
-        S = (OT_O / N) - ((OT * O / (N)*N)); // alpha X alpha
+        S = (OT_O / N) - ((OT * O / (N)*N)); // hid_node_num X hid_node_num
         S = S - lamda * arma::diagmat(S);
         F = (E_OT / N) - e_loc * OT / N;
         double update = arma::norm((arma::pinv(S)) * F);

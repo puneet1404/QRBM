@@ -15,6 +15,7 @@
                 // "-O3",
                 "-larmadillo",
                 "-lmatplot",
+                "-fopenmp",
             ],
             "group" :{
                 "kind": "build",

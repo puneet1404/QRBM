@@ -28,14 +28,13 @@ namespace pj
     int col = 1;
     int row = 10;
     int alpha = 2;
-    int hid_node_num = alpha*row;
+    int hid_node_num = alpha * row;
     long double gama()
     {
-        static double gama=1;
-        gama=0.99*gama;
-        gama=(gama<pow(10,-2))?(pow(10,-2)):(gama);
+        static double gama = 1;
+        // gama=0.99*gama;
+        // gama=(gama<pow(10,-2))?(pow(10,-2)):(gama);
         return gama;
-        
     }
 
     // parameters of the hamil
@@ -44,8 +43,6 @@ namespace pj
     std::random_device rd;
 
     // debuging
-    int alpksp = 1;
-    vector<double> int_n, somevar;
 
     const int dim = pow(2, row);
     struct weights
@@ -127,7 +124,8 @@ namespace pj
         // cosh theta implimentation
         long double cosh_theta = 1;
         mat m = theta_matrix(VL, WEI);
-        m.for_each([](auto &m ){m=cosh(m);});
+        m.for_each([](auto &m)
+                   { m = cosh(m); });
         for (size_t i = 0; i < hid_node_num; i++)
         {
             cosh_theta = 2 * cosh_theta * (m(i, 0));
@@ -140,9 +138,6 @@ namespace pj
         bruh(cosh_theta);
         bruh(sig_i_a_i);
         psi = log(cosh_theta) + (sig_i_a_i);
-        somevar.push_back(log(psi));
-        int_n.push_back((alpksp));
-        alpksp++;
         return (psi);
     }
     visible_layer sampler(visible_layer VL, std::random_device &rd = pj::rd)
@@ -160,7 +155,7 @@ namespace pj
         return c;
     }
 
-    long double E_loc(visible_layer VL, const weights& W)
+    long double E_loc(visible_layer VL, const weights &W)
     {
 
         // the hamiltonian is h*sum(sig_x)+ j*sum(sig_z(i)*sig_z(i+1))
@@ -169,14 +164,14 @@ namespace pj
         for (size_t i = 0; i < row; i++)
         {
             m.flip(i);
-            E_loc += j*VL.S(i % row, 0) * VL.S((i + 1) % row) + h * p_ratio(m, VL, W);
+            E_loc += j * VL.S(i % row, 0) * VL.S((i + 1) % row) + h * p_ratio(m, VL, W);
             m.flip(i);
         }
         bruh(E_loc);
         return E_loc;
     }
 
-    long double E_loc_avg(const visible_layer VL, const weights &W, int itt_no = 1000,std::random_device &rd = pj::rd)
+    long double E_loc_avg(const visible_layer VL, const weights &W, int itt_no = 1000, std::random_device &rd = pj::rd)
     {
         std::uniform_int_distribution<int> dist_int(0, row - 1);
         std::uniform_real_distribution<long double> dist_real(0, 1);
@@ -206,15 +201,16 @@ namespace pj
         mat O, OT_O, OT, O_O, E_OT,
             S, F, a_n, i = arma::eye(row, row);
 
-        visible_layer vl2=vl;
+        visible_layer vl2 = vl;
         O = sampler(vl).S.t();               // 1 X row
         OT = sampler(vl).S;                  // row X 1
         O_O = sampler(vl).S;                 // row X 1
         OT_O = (O_O) * (O_O.t());            // row X row
         E_OT = E_loc(vl, w) * sampler(vl).S; // row X 1
+// #pragma omp parallel for num_threads(6)
         for (size_t j = 1; j < N; j++)
         {
-            vl2=sampler(vl2);
+            vl2 = sampler(vl2);
             O += sampler(vl2).S.t();
             OT += sampler(vl2).S;
             O_O = sampler(vl2).S;
@@ -231,15 +227,13 @@ namespace pj
         //           << arma::pinv(S) * F << "\n";
 
         // if (update > pow(10, -3))
-        mat m = w.a - gama() * (arma::pinv(S)) * F /update;
+        mat m = w.a - gama() * (arma::pinv(S)) * F / update;
         return m;
     }
     mat w_update(visible_layer vl, const weights &w, int N = 1000)
     {
 
-        static double lamda = pow(10,1), a = 100;
-        a = a * 0.9;
-        lamda = (a < pow(10, -4)) ? (pow(10, -4)) : (a);
+        double lamda = 10;
         mat O, OT_O, OT, O_O, E_OT,
             S, F, i = arma::eye(row, row),
                   theta = theta_matrix(vl, w);
@@ -254,7 +248,7 @@ namespace pj
                ((rough.S * (tanh_theta.t())).t()); // row X row
         E_OT = E_loc(vl, w) *
                (rough.S * (tanh_theta.t())); // hid_node_num X row
-        #pragma omp parallel for
+// #pragma omp parallel for num_threads(6)
         for (size_t j = 1; j < N; j++)
         {
             rough = sampler(vl);
@@ -273,10 +267,10 @@ namespace pj
         // std::cout << "w\n"
         //           << arma::pinv(S) * F << "\n";
         // if (update > pow(10, -3))
-        mat m  = w.W - gama() * ((arma::pinv(S)) * F).t()/update;
+        mat m = w.W - gama() * ((arma::pinv(S)) * F).t() / update;
         return m;
     }
-    mat b_update(visible_layer vl,const weights &w, int N = 1000)
+    mat b_update(visible_layer vl, const weights &w, int N = 1000)
     {
         static double lamda = pow(10, -2), a = 100;
         a = a * 0.9;
@@ -292,6 +286,8 @@ namespace pj
         O_O = tanh_theta;                 // hid_node_num X 1
         OT_O = (O_O) * (O_O.t());         // hid_node_num X hid_node_num
         E_OT = E_loc(vl, w) * tanh_theta; // hid_node_num X 1
+// #pragma omp parallel for num_threads(6)
+
         for (size_t j = 1; j < N; j++)
         {
             rough = sampler(vl);
@@ -309,7 +305,7 @@ namespace pj
         F = (E_OT / N) - e_loc * OT / N;
         double update = arma::norm((arma::pinv(S)) * F);
         // std::cout << "b\n"
-                //   << arma::pinv(S) * F << "\n";
+        //   << arma::pinv(S) * F << "\n";
         mat m = w.b - gama() * ((arma::pinv(S)) * F) / update;
         return m;
     }

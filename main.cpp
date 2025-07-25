@@ -51,33 +51,34 @@ int main()
 	cout << "eigen values are :\n"
 		 << matrix.min_eig_value() << "\n";
 
+
+
 	pj::visible_layer VL, VL2 = VL;
 	pj::weights W;
 
 	double alpha = pj::E_loc_avg(VL, W), beta = 0;
 	int gama = 0, counting = 0;
 	arma::mat a, b, w;
-	cout << alpha << endl;
 	vector<double> count, energy;
 
 	VL = VL2;
 	for (size_t j = 0; j < 10; j++)
 	{
 		vector<double> e_loc, e_loc_avg, n;
-		for (size_t i = 0; i < 3000; i++)
+		for (size_t i = 0; i < 100; i++)
 		{
-			pj::visible_layer vl;
-
-			a = pj::a_update(VL, W);
+			// a = pj::a_update(VL, W);
 			w = pj::w_update(VL, W);
-			b = pj::b_update(VL, W);
-			W.a = a;
-			W.b = b;
+			// b = pj::b_update(VL, W);
+			// W.a = a;
+			// W.b = b;
 			W.W = w;
+
+
 			cout<<"i = "<<i<<"\t j= "<<j<<"\n";
 			// cout<<"w=\n"<<W.W<<"\n";
 			// cout<<"b=\n"<<W.b<<"\n";
-			e_loc.push_back(pj::E_loc(vl, W));
+			e_loc.push_back(pj::E_loc(VL, W));
 			e_loc_avg.push_back(pj::E_loc_avg(VL, W));
 			n.push_back(gama);
 			gama++;
@@ -86,14 +87,14 @@ int main()
 		}
 		VL.flip(dist(rd));
 		counting++;
-		energy.push_back(avg_cal(e_loc_avg));
-		count.push_back(counting);
+		// energy.push_back(avg_cal(e_loc_avg));
+		// count.push_back(counting);
 
 		plot(n, e_loc, e_loc_avg, j);
 	}
-	plot(count, energy, 999);
-	cout << "the vergaee energy diff is = " << abs(abs(min_value) - abs(avg_cal(energy)))<<"\n";
-	cout<<avg_cal(energy);
+	// plot(count, energy, 999);
+	// cout << "the vergaee energy diff is = " << abs(abs(min_value) - abs(avg_cal(energy)))<<"\n";
+	// cout<<avg_cal(energy);
 
 	auto end = std::chrono::high_resolution_clock::now();
 	auto elapsed = end - start;

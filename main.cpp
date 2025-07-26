@@ -35,13 +35,18 @@ double avg_cal(const vector<double> &a)
 	double count = static_cast<double>(a.size());
 	return reduce(a.begin(), a.end()) / count;
 }
+double avg_cal(const vector<double> &a, int n )
+{
+	// double count = static_cast<double>(a.size());
+	return reduce(a.end()-n , a.end()) / n;
+}
 int main()
 {
 	std::random_device rd;
 	uniform_int_distribution<int> dist(0, pj::row - 1);
 	auto start = std::chrono::high_resolution_clock::now();
 
-	number_of_sites = 10;
+	number_of_sites = pj::row;
 	hamiltoian_matrix matrix;
 	arma::cx_dmat hamiltonian = matrix.Hamiltonian;
 	// arma::mat vector= arma::zeros(hamiltonian.n_cols,1);
@@ -64,33 +69,47 @@ int main()
 	VL = VL2;
 	for (size_t j = 0; j < 10; j++)
 	{
-		vector<double> e_loc, e_loc_avg, n;
-		for (size_t i = 0; i < 100; i++)
-		{
-			// a = pj::a_update(VL, W);
-			w = pj::w_update(VL, W);
-			// b = pj::b_update(VL, W);
-			// W.a = a;
-			// W.b = b;
-			W.W = w;
+			vector<double> e_loc, e_loc_avg, n;
+			for (size_t i = 0; i < 1000; i++)
+			{
+				w = pj::w_update(VL, W);
+				a = pj::a_update(VL, W);
+				b = pj::b_update(VL, W);
+				W.a = a;
+				W.b = b;
+				W.W = w;
+				
+				
+				
+				e_loc.push_back(pj::E_loc(VL, W));
+				e_loc_avg.push_back(pj::E_loc_avg(VL, W));
+				n.push_back(gama);
+				gama++;
+				if( gama % 100 ==0 )
+				{
+					cout<<"e loc avg is  ="<<avg_cal(e_loc_avg,100)<<"\n"
+					<<"gama="<<pj::gama()<<"\n";
+					plot(n, e_loc, gama+1);
+					plot(n,e_loc_avg, gama+2);
+					VL = pj::sampler(VL,W);
 
-
-			cout<<"i = "<<i<<"\t j= "<<j<<"\n";
-			// cout<<"w=\n"<<W.W<<"\n";
-			// cout<<"b=\n"<<W.b<<"\n";
-			e_loc.push_back(pj::E_loc(VL, W));
-			e_loc_avg.push_back(pj::E_loc_avg(VL, W));
-			n.push_back(gama);
-			gama++;
-			// VL.flip(dist(rd));
-			// cout<<gama<<"\n";
-		}
-		VL.flip(dist(rd));
+				}
+				if( gama % 500 ==0 )
+				{
+					cout<<"i = "<<i<<"\t j= "<<j<<"\n";
+					plot(n, e_loc,e_loc_avg, gama);
+					VL = pj::sampler(VL,W);
+					cout<<"e loc avg is  ="<<avg_cal(e_loc_avg,100)<<"\n"
+					<<"gama="<<pj::gama()<<"\n";
+					// e_loc_avg.clear();
+					// n.clear();
+				}
+			}
+			plot(n, e_loc,j);
+		
 		counting++;
 		// energy.push_back(avg_cal(e_loc_avg));
 		// count.push_back(counting);
-
-		plot(n, e_loc, e_loc_avg, j);
 	}
 	// plot(count, energy, 999);
 	// cout << "the vergaee energy diff is = " << abs(abs(min_value) - abs(avg_cal(energy)))<<"\n";

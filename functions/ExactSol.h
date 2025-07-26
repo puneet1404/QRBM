@@ -14,7 +14,8 @@ int number_of_sites(10);
 int dim(2);
 std::complex<double> a(0, 1);    // just a stand in for comple no i;
 const double magnetic_field = 1; // for hamiltonian equation
-const double J = 2;              // for hamiltonian equation
+const double J = 1;
+const double H = 0.5;             // for hamiltonian equation
 using namespace std;
 
 struct sigma_n // just for convinience; any changes for other spins should be updated here first
@@ -217,10 +218,11 @@ double hamiltoian_matrix::min_eig_value()
 arma::cx_dmat hamiltoian_matrix::calc_hamiltonian()
 {
 	arma::cx_dmat hamiltonian = arma::zeros<arma::cx_dmat>(pow(dim,num),pow(dim,num));
-	for (size_t i = 0; i < num; i++)
+	for (size_t i = 0; i < num-1; i++)
 	{
-		hamiltonian += Z[i]*Z[(i+1)%num] +X[i];
+		hamiltonian += -J*Z[i]*Z[(i+1)%num] - H* X[i];
 	}
+    hamiltonian+= -H*X[num-1];
 	return hamiltonian;
 }
 

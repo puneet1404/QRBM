@@ -14,8 +14,8 @@ int number_of_sites(10);
 int dim(2);
 std::complex<double> a(0, 1);    // just a stand in for comple no i;
 const double magnetic_field = 1; // for hamiltonian equation
-const double J = 1;
-const double H = 0.5;             // for hamiltonian equation
+ double J = 1;
+ double H = 0.2;             // for hamiltonian equation
 using namespace std;
 
 struct sigma_n // just for convinience; any changes for other spins should be updated here first

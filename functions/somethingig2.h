@@ -26,13 +26,14 @@ namespace pj
 
     // defines the paramemeter of the sim
     int col = 1;
-    int row = 10;
-    int alpha = 2;
+    int row = 5;
+    int alpha = 8;
     int hid_node_num = alpha * row;
     double sigmoid(double x) { return ((1 / (1 + exp(0.1 * x))) + pow(10, -3)); }
     long double gama()
     {
         static double n = 0.1;
+        n = n * 0.99;
         return (n > pow(10, -4)) ? (n) : (pow(10, -4));
     }
 

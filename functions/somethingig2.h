@@ -32,13 +32,12 @@ namespace pj
     double sigmoid(double x) { return ((1 / (1 + exp(0.1 * x))) + pow(10, -3)); }
     long double gama()
     {
-        static double n = 0.3;
-        n = n * 0.9995;
+        static double n = 0.1;
         return (n > pow(10, -4)) ? (n) : (pow(10, -4));
     }
 
     // parameters of the hamiltonian
-    long double h = 0.9;
+    long double h = 0.5;
     long double j = 1;
     std::random_device rd;
 
@@ -167,6 +166,7 @@ namespace pj
         sig_i_a_i = arma::as_scalar(VL.S.t() * WEI.a);
         if (std::isnan(sig_i_a_i))
         {
+            std::cout<<"well we hit nan\n";
             sig_i_a_i = 0;
         }
 
@@ -227,7 +227,7 @@ namespace pj
         return E_loc;
     }
 
-    long double E_loc_avg(const visible_layer VL, const weights &W, int itt_no = 5000, std::random_device &rd = pj::rd)
+    long double E_loc_avg(const visible_layer VL, const weights &W, int itt_no = 1000, std::random_device &rd = pj::rd)
     {
         long double e_loc = E_loc(VL, W);
         visible_layer VL2 = VL;
@@ -260,7 +260,7 @@ namespace pj
     }
 
     mat inv_S_F(visible_layer vl, const weights &w, function<visible_layer(const visible_layer, const weights &, std::random_device &)> sampler_function,
-                function<mat(const visible_layer, const weights &)> matrix_maker, int eye_num, int N = 1000)
+                function<mat(const visible_layer, const weights &)> matrix_maker, int eye_num, int N = 500)
     // eye_num is for the eye matrix for a_update = row
     // b_update eye = hidden_node_num
     // w_update eye = hidden_node_num
@@ -281,12 +281,12 @@ namespace pj
 
         for (size_t j = 1; j < N; j++)
         {
-            vl2 = sampler_function(vl, w, rd);
             O += matrix_maker(sampler_function(vl2, w, rd), w);
             OT += matrix_maker(sampler_function(vl2, w, rd), w).t();
             OT_O += matrix_maker(sampler_function(vl2, w, rd), w).t() *
-                    matrix_maker(sampler_function(vl2, w, rd), w);
-            E_OT += E_loc(vl2, w) * matrix_maker(sampler_function(vl2, w, rd), w).t();
+            matrix_maker(sampler_function(vl2, w, rd), w);
+            E_OT += E_loc(sampler_function(vl2, w, rd), w) * matrix_maker(sampler_function(vl2, w, rd), w).t();
+            vl2 = sampler_function(vl, w, rd);
         }
 
         long double e_loc = E_loc_avg_eff(vl, w);

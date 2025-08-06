@@ -102,7 +102,7 @@ int main()
 					// VL= pj::sampler(VL,W);
 					cout<<"e loc avg per site is  ="<<avg_cal(e_loc_avg,50)/pj::row<<"\n"
 					<<"exact value is = "<<min_value/pj::row<<"\n"
-					<<"and their difference is ="<<(avg_cal(e_loc_avg,50)-min_value)/pj::row
+					<<"and their difference is ="<<(avg_cal(e_loc_avg,50)-min_value)/pj::row<<"\n"
 					<<"gama="<<pj::gama()<<"\n";
 					// cout<<"visible layer is ::"<<VL.S<<"\n";
 					cout<<pj::E_loc(VL,W)<<"is he value of e_loc\n\n";

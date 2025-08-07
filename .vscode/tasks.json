@@ -7,18 +7,28 @@
             "label": "build",
             "type": "shell",
             "command": "g++",
-            "args":[
+            "args": [
                 "-o",
                 "main",
                 "-g",
                 "main.cpp",
-                // "-O3",
+                "-O3",
                 "-larmadillo",
                 "-lmatplot",
-                "-fopenmp",
+                "-fopenmp"
             ],
-            "group" :{
+            "group": {
                 "kind": "build",
+                "isDefault": true
+            }
+        },
+        {
+            "label": "execute",
+            "type": "shell",
+            "command": "./main",
+            "problemMatcher": [],
+            "group": {
+                "kind": "test",
                 "isDefault": true
             }
         }

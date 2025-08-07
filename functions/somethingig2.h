@@ -3,7 +3,6 @@
 
 #include <armadillo>
 #include <matplot/matplot.h>
-
 #include <vector>
 #include <iostream>
 #include <cmath>
@@ -26,25 +25,43 @@ namespace pj
 
     // defines the paramemeter of the sim
     int col = 1;
-    int row = 5;
-    int alpha = 8;
+    int row = 4;
+    int alpha = 1;
     int hid_node_num = alpha * row;
     double sigmoid(double x) { return ((1 / (1 + exp(0.1 * x))) + pow(10, -3)); }
-    long double gama()
-    {
-        static double n = 0.1;
-        n = n * 0.99;
-        return (n > pow(10, -4)) ? (n) : (pow(10, -4));
-    }
+    // long double gama()
+    // {
+    //     static double n = .1;
+    //     n *= (.95);
+    //     return (n > pow(10, -4)) ? (n) : (pow(10, -4));
+    // }
+
 
     // parameters of the hamiltonian
-    long double h = 0.5;
+    long double h = 0.9;
     long double j = 1;
     std::random_device rd;
 
-    // debuging
+    struct gama
+    {
+        long double g = 0;
+        long double rate = 0;
+        gama(double r = .95)
+        {
+            g =r;
+            rate = 1.001;
+        }
+        auto  operator*(mat  &m)
+        {
+           return  g*m;
+        }
+        void update()
+        {
+            g*=rate;
+            // g=(g > pow(10, -4)) ? (g) : (pow(10, -4));
+        }
+    };
 
-    const int dim = pow(2, row);
     struct weights
     {
         mat W;
@@ -52,7 +69,7 @@ namespace pj
         mat b;
         weights()
         {
-            W = 0 * arma::randu(hid_node_num, row);
+            W = 0.1 * arma::randu(hid_node_num, row);
             a = 0.1 * arma::randu(row, 1);
             b = 0.1 * arma::randu(hid_node_num, 1);
         }
@@ -62,7 +79,6 @@ namespace pj
             a = a / n;
             b = b / n;
         }
-
         bool are_equal(const weights &w)
         {
             bool m = true;
@@ -96,6 +112,13 @@ namespace pj
             }
             return m;
         }
+        void normalize()
+        {
+            W = W / arma::norm(W);
+            a = a / arma::norm(a);
+            b = b / arma::norm(b);
+        }
+
     };
 
     struct visible_layer
@@ -146,7 +169,7 @@ namespace pj
     }
     mat vis_cross_tanh(visible_layer vl, const weights &w)
     {
-        return vl.S * tanh_matrix(vl, w);
+        return (vl.S * tanh_matrix(vl, w));
     }
 
     // this functions checks for invalid numbers taht might creep up in the program
@@ -165,11 +188,6 @@ namespace pj
         // sigmai* a(i) implimnetation
         long double sig_i_a_i = 0;
         sig_i_a_i = arma::as_scalar(VL.S.t() * WEI.a);
-        if (std::isnan(sig_i_a_i))
-        {
-            std::cout<<"well we hit nan\n";
-            sig_i_a_i = 0;
-        }
 
         long double cosh_theta = 0;
         mat m = theta_matrix(VL, WEI);
@@ -179,16 +197,15 @@ namespace pj
         {
             cosh_theta = log(2) + cosh_theta + (m(i, 0));
         }
-        bruh(cosh_theta);
-        bruh(sig_i_a_i);
+        cosh_theta = std::min(std::max(cosh_theta, static_cast<long double>(-700.0)),static_cast<long double>(700.0));
         psi = (cosh_theta) + (sig_i_a_i);
+        bruh(psi);
         return (psi);
     }
 
     long double p_ratio(visible_layer VL, visible_layer VL2, const weights &w)
     {
         long double a = psi(VL, w), b = psi(VL2, w);
-        bruh(exp(a - b));
         return exp(a - b);
     }
 
@@ -199,7 +216,7 @@ namespace pj
         int n = dist(rd);
         visible_layer vl = VL;
         vl.flip(n);
-        if (pow(p_ratio(vl, VL, w), 2) > 1)
+        if (p_ratio(vl, VL, w) > 1)
             return vl;
         else
         {
@@ -228,16 +245,22 @@ namespace pj
         return E_loc;
     }
 
-    long double E_loc_avg(const visible_layer VL, const weights &W, int itt_no = 1000, std::random_device &rd = pj::rd)
+    long double E_loc_avg(const visible_layer VL, const weights &W, int itt_no = 5000, std::random_device &rd = pj::rd)
     {
         long double e_loc = E_loc(VL, W);
-        visible_layer VL2 = VL;
+        int n = 1;
+        visible_layer VL2 = VL, vl3 = VL2;
         for (size_t i = 0; i < itt_no - 1; i++)
         {
             VL2 = sampler(VL2, W);
-            e_loc += E_loc(VL2, W);
+            if (!vl3.are_equal(VL2))
+            {
+                e_loc += E_loc(VL2, W);
+                n++;
+                vl3 = VL2;
+            }
         }
-        return e_loc / (itt_no);
+        return e_loc / (n);
     }
 
     // thhis function keeps E_loc_avg in memory untill weights or VL is changed;
@@ -261,19 +284,19 @@ namespace pj
     }
 
     mat inv_S_F(visible_layer vl, const weights &w, function<visible_layer(const visible_layer, const weights &, std::random_device &)> sampler_function,
-                function<mat(const visible_layer, const weights &)> matrix_maker, int eye_num, int N = 500)
+                function<mat(const visible_layer, const weights &)> matrix_maker, int eye_num, int N = 1000)
     // eye_num is for the eye matrix for a_update = row
     // b_update eye = hidden_node_num
     // w_update eye = hidden_node_num
     {
-        mat O, OT_O, OT, O_O, E_OT,
+        mat O, OT_O, OT, E_OT,
             S, F, a_n, i = arma::eye(eye_num, eye_num);
 
         static double lamda = pow(10, 2), a = 100;
-        a = a * 0.9995;
+        a = a * 0.9;
         lamda = (a < pow(10, -4)) ? (pow(10, -4)) : (a);
 
-        visible_layer vl2 = vl;
+        visible_layer vl2 = vl, vl3 = vl2;
         O = matrix_maker(sampler_function(vl2, w, rd), w);
         OT = matrix_maker(sampler_function(vl2, w, rd), w).t();
         OT_O = matrix_maker(sampler_function(vl2, w, rd), w).t() *
@@ -282,43 +305,54 @@ namespace pj
 
         for (size_t j = 1; j < N; j++)
         {
-            O += matrix_maker(sampler_function(vl2, w, rd), w);
-            OT += matrix_maker(sampler_function(vl2, w, rd), w).t();
-            OT_O += matrix_maker(sampler_function(vl2, w, rd), w).t() *
-            matrix_maker(sampler_function(vl2, w, rd), w);
-            E_OT += E_loc(sampler_function(vl2, w, rd), w) * matrix_maker(sampler_function(vl2, w, rd), w).t();
             vl2 = sampler_function(vl, w, rd);
+            if (!vl3.are_equal(vl2))
+            {
+
+                O += matrix_maker(sampler_function(vl2, w, rd), w);
+                OT += matrix_maker(sampler_function(vl2, w, rd), w).t();
+                OT_O += matrix_maker(sampler_function(vl2, w, rd), w).t() *
+                        matrix_maker(sampler_function(vl2, w, rd), w);
+                E_OT += E_loc(sampler_function(vl2, w, rd), w) * matrix_maker(sampler_function(vl2, w, rd), w).t();
+                vl3=vl2;
+            }
+            }
+
+            long double e_loc = E_loc_avg_eff(vl, w);
+            S = (OT_O / N) - ((OT * O / pow(N, 2)));
+            S = S + lamda * arma::diagmat(S);
+            // S = S + lamda * i;
+            F = (E_OT / N) - e_loc * OT / N;
+            mat m = ((arma::pinv(S)) * F);
+            return m;
         }
 
-        long double e_loc = E_loc_avg_eff(vl, w);
-        S = (OT_O / N) - ((OT * O / pow(N, 2)));
-        S = S + lamda * arma::diagmat(S);
-        F = (E_OT / N) - e_loc * OT / N;
-        mat m = ((arma::pinv(S)) * F);
-        return m / arma::norm(m);
+        // mat a_update(visible_layer vl, const weights &w)
+        // {
+        //     mat m = w.a - gama() * inv_S_F(vl, w, &sampler, &identity_vis_lay, row);
+        //     return m;
+        // }
+        // mat w_update(visible_layer vl, const weights &w)
+        // {
+        //     mat m = w.W - gama() * inv_S_F(vl, w, &sampler, &vis_cross_tanh, hid_node_num);
+        //
+        //     return m;
+        // }
+        // mat b_update(visible_layer vl, const weights &w)
+        // {
+        //     mat m = w.b - gama() * inv_S_F(vl, w, &sampler, &tanh_matrix, hid_node_num);
+        //     return m;
+        // }
+        void W_update(visible_layer vl, weights & w)
+        {
+            static gama g(0.00001); 
+            mat m = inv_S_F(vl, w, &sampler, &vis_cross_tanh, hid_node_num);
+            w.W = w.W - g.g* m;
+            w.a = w.a - g.g * inv_S_F(vl, w, &sampler, &identity_vis_lay, row);
+            w.b = w.b - g.g * inv_S_F(vl, w, &sampler, &tanh_matrix, hid_node_num);
+            // cout<<"w= "<<arma::norm(w)<<"; b = "<<arma::norm(b)<<"; a = "<<arma::norm(a)<<"\n";
+            // g.update();
+        }
     }
-
-    mat a_update(visible_layer vl, const weights &w, int N = 1000)
-    {
-        mat m = w.a - gama() * inv_S_F(vl, w, &sampler, &identity_vis_lay, row);
-        return m;
-    }
-
-    //! mark this
-
-    mat w_update(visible_layer vl, const weights &w, int N = 1000)
-    {
-        mat m = w.W - gama() * inv_S_F(vl, w, &sampler, &vis_cross_tanh, hid_node_num);
-
-        return m;
-    }
-
-    mat b_update(visible_layer vl, const weights &w, int N = 1000)
-    {
-        mat m = w.b - gama() * inv_S_F(vl, w, &sampler, &tanh_matrix, hid_node_num);
-        return m;
-    }
-
-}
 
 #endif

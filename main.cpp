@@ -37,7 +37,10 @@ double avg_cal(const vector<double> &a)
 }
 double avg_cal(const vector<double> &a, int n )
 {
+
 	// double count = static_cast<double>(a.size());
+	if(n>a.size())
+	return avg_cal(a);
 	return reduce(a.end()-n , a.end()) / n;
 }
 
@@ -61,15 +64,10 @@ int main()
 	H=pj::h;
 	hamiltoian_matrix matrix;
 	arma::cx_dmat hamiltonian = matrix.Hamiltonian;
-	// arma::mat vector= arma::zeros(hamiltonian.n_cols,1);
-	// vector(5,0)=1;
-	// cout<<hamiltonian*vector;
 	double min_value = matrix.min_eig_value();
 	cout << "minimum eigen values are :\n"
 		 << matrix.min_eig_value() << "\n";
 
-	// cout<<"all eigen values are "<<"\n"
-	// 	<<matrix.Eigen_values<<"\n";
 
 	pj::visible_layer VL, VL2 = VL;
 	pj::weights W;
@@ -80,40 +78,40 @@ int main()
 	vector<double> count, energy;
 
 	VL = VL2;
+	vector<double> e_loc, e_loc_avg, n;
 	for (size_t j = 0; j < 10; j++)
 	{
-			vector<double> e_loc, e_loc_avg, n;
-			for (size_t i = 0; i < 1000; i++)
+			for (size_t i = 0; i < 10000; i++)
 			{
-				w = pj::w_update(VL, W);
-				a = pj::a_update(VL, W);
-				b = pj::b_update(VL, W);
-				cout<<"w= "<<arma::norm(w)<<"; b = "<<arma::norm(b)<<"; a = "<<arma::norm(a)<<"\n";
-				W.a = a;
-				W.b = b;
-				W.W = w;
-				
-				e_loc.push_back(pj::E_loc(VL, W));
+				pj::W_update(VL,W);
+
+				e_loc.push_back(avg_cal(e_loc_avg,20));
 				e_loc_avg.push_back(pj::E_loc_avg(VL, W));
 				n.push_back(gama);
 				gama++;
+				
 				if( gama % 50 ==0 )
 				{
 					// VL= pj::sampler(VL,W);
-					cout<<"e loc avg per site is  ="<<avg_cal(e_loc_avg,50)/pj::row<<"\n"
-					<<"exact value is = "<<min_value/pj::row<<"\n"
-					<<"and their difference is ="<<(avg_cal(e_loc_avg,50)-min_value)/pj::row<<"\n"
-					<<"gama="<<pj::gama()<<"\n";
+					cout<<"---------------------------------------------------------\n";
+					double avg = avg_cal(e_loc_avg,50);
+					cout<<"e loc avg per site is  ="<<avg/pj::row<<"\n"
+					<<"exact value is \t\t="<<min_value/pj::row<<"\n"
+					<<"and their difference is = "<<(avg-min_value)/pj::row<<"\n"
+					<<"the percentage error is = "<<abs((avg-min_value)*100/(avg))<<"%\n"
+					<<"";
 					// cout<<"visible layer is ::"<<VL.S<<"\n";
-					cout<<pj::E_loc(VL,W)<<"is he value of e_loc\n\n";
-					plot(n, e_loc, gama+1);
-					plot(n,e_loc_avg, gama+2);
+					// cout<<pj::E_loc(VL,W)<<"is he value of e_loc\n";
+					// plot(n,e_loc_avg, gama+2);
+					// W.shake();
 					// e_loc.clear();
 					// e_loc_avg.clear();
 					// n.clear();
 				}
 				VL=pj::sampler(VL,W);
 			}
+			plot(n, e_loc, 20+1);
+			// W.shake();
 		counting++;
 		}
 

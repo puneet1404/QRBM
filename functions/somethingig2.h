@@ -2,16 +2,14 @@
 #define _somethingig_H_
 
 #include <armadillo>
-#include <matplot/matplot.h>
 #include <vector>
 #include <iostream>
 #include <cmath>
-#include <omp.h>
-#include <set>
 #include <complex>
 #include <unordered_map>
 #include <random>
 #include <stdexcept>
+
 
 /* this will used the functional approach to make the
 RBM

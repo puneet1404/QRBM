@@ -15,7 +15,10 @@
                 "-O3",
                 "-larmadillo",
                 "-lmatplot",
-                "-fopenmp"
+                "-fopenmp",
+                "-lcln",
+                "-lgmp",
+                "-lginac",
             ],
             "group": {
                 "kind": "build",

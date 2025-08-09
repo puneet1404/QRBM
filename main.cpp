@@ -45,30 +45,60 @@ double avg_cal(const vector<double> &a, int n)
 	return reduce(a.end() - n, a.end()) / n;
 }
 
+double &min_eigen_value(bool s = pj::exact_cal_bool)
+{
+	static double t=0;
+	if (s)
+	{
+		if(t!=0)
+		return t;
+		number_of_sites = pj::row;
+		J = pj::J;
+		H = pj::H;
+		hamiltoian_matrix matrix;
+		arma::cx_dmat hamiltonian = matrix.Hamiltonian;
+		t = matrix.min_eig_value();
+		return t;
+	}
+	else
+	{
+		return t;
+	}
+}
+string cout_str(bool s = pj::exact_cal_bool)
+{
+	if(s)
+	{
+		return ("exact value is \t\t=");
+	}
+	return ("the previous value is\t=");
+}
+
 int main()
 {
 	std::random_device rd;
-	uniform_int_distribution<int> dist(0, pj::row - 1);
+	// uniform_int_distribution<int> dist(0, pj::row - 1);
 	auto start = std::chrono::high_resolution_clock::now();
 	arma::arma_rng::set_seed_random();
-	number_of_sites = pj::row;
-	J = pj::J;
-	H = pj::H;
-	hamiltoian_matrix matrix;
-	arma::cx_dmat hamiltonian = matrix.Hamiltonian;
-	double min_value = matrix.min_eig_value();
-	cout << "minimum eigen values are :\n"
-		 << matrix.min_eig_value() << "\n";
 
-	pj::visible_layer VL, VL2 = VL;
+	// number_of_sites = pj::row;
+	// J = pj::J;
+	// H = pj::H;
+	// hamiltoian_matrix matrix;
+	// arma::cx_dmat hamiltonian = matrix.Hamiltonian;
+	// double min_value = matrix.min_eig_value();
+	// cout << "minimum eigen values are :\n"
+	// 	 << matrix.min_eig_value() << "\n";
+
+	pj::visible_layer VL;
 	pj::weights W;
 
-	int gama = 0;
-	arma::mat a, b, w;
-	vector<double> count, energy;
+	double g = 0;
+	double m = 0;
 
-	VL = VL2;
+	int gama = 0;
 	vector<double> e_loc, e_loc_avg, n;
+
 	try
 	{
 
@@ -76,28 +106,30 @@ int main()
 		{
 			for (size_t i = 0; i < 500; i++)
 			{
-				pj::W_update(VL, W);
+				g = pj::W_update(VL, W);
 				// cout<<i<<"\n";
 
 				e_loc_avg.push_back((pj::E_loc_avg(VL, W)));
-				e_loc.push_back((pj::E_loc(VL, W)));
+				e_loc.push_back(avg_cal(e_loc_avg, pj::run_avg_win));
 				n.push_back(gama);
 				gama++;
-				if (gama % 10 == 0)
+				if (gama % 10 == 0 && pj::display_togle)
 				{
 					// VL= pj::sampler(VL,W);
 					cout << "---------------------------------------------------------\n";
-					double avg = avg_cal(e_loc_avg, 10);
+					double avg = avg_cal(e_loc_avg, pj::run_avg_win);
 					cout << "e loc avg per site is  =" << avg / pj::row << "\n"
-						 << "e loc value per site is =" << avg_cal(e_loc, 20) / pj::row << "\n"
-						 << "exact value is \t\t=" << min_value / pj::row << "\n"
-						 << "and their difference is = " << (avg - min_value) / pj::row << "\n"
-						 << "the percentage error is = " << abs((avg - min_value) * 100 / (avg)) << "%\n"
-						 << "w is =\t\t\t" << arma::norm(W.W) << "\n"
-						 << "a is =\t\t\t" << arma::norm(W.a) << "\n"
-						 << "b is =\t\t\t" << arma::norm(W.b) << "\n";
-
-					pj::gama g(1);
+						 << "e loc value per site is =" << avg_cal(e_loc, pj::run_avg_win) / pj::row << "\n"
+						  << ((pj::exact_cal_bool)?("exact value is \t\t="):("the previous value is\t=")) << min_eigen_value() / pj::row << "\n"
+						  << "and their difference is = " << (avg - min_eigen_value()) / pj::row << "\n"
+						 << "the percentage error is = " << abs((avg - min_eigen_value()) * 100 / (avg)) << "%\n"
+						 << "w is \t\t\t=" << arma::norm(W.W) << "\n"
+						 << "a is \t\t\t=" << arma::norm(W.a) << "\n"
+						 << "b is \t\t\t=" << arma::norm(W.b) << "\n"
+						 << "gamma is \t\t=" << g << "\n"
+						 << "this is the  " << gama << "th turn" << endl;
+					
+						 // min_eigen_value() = avg;
 					plot(n, e_loc_avg, 20 + 1);
 					plot(n, e_loc, 22);
 					// W.shake(g);
@@ -116,7 +148,6 @@ int main()
 				e_loc.clear();
 				e_loc_avg.clear();
 			}
-			
 		}
 	}
 	catch (runtime_error)

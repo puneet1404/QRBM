@@ -58,7 +58,7 @@ namespace pj
             rate = gama_decrement_exponent;
             int_123 = n;
         }
-        auto operator*(mat &m)
+        auto operator*(mat m)
         {
             // static double thresh_hold= 0.05;
             // mat t = g*m;
@@ -79,9 +79,9 @@ namespace pj
             // return ((t > pow(10, -7)) ? (t) : (pow(10, -7))) * m;
             return t * m;
         }
-        void update()
+        double out()
         {
-            g *= rate;
+            return g / pow((*int_123), rate);
             // g=(g > pow(10, -4)) ? (g) : (pow(10, -4));
         }
     };
@@ -144,9 +144,9 @@ namespace pj
         }
         void shake(gama g)
         {
-            W += g.g * 0.1 * (arma::randu(hid_node_num, row));
-            a += g.g * 0.1 * (arma::randu(row, 1));
-            b += g.g * 0.1 * (arma::randu(hid_node_num, 1));
+            W += g* (arma::randu(hid_node_num, row));
+            a += g* (arma::randu(row, 1));
+            b += g* (arma::randu(hid_node_num, 1));
         }
     };
 
@@ -361,7 +361,7 @@ namespace pj
     //     mat m = w.b - gama() * inv_S_F(vl, w, &sampler, &tanh_matrix, hid_node_num);
     //     return m;
     // }
-    void W_update(visible_layer &vl, weights &w)
+    double W_update(visible_layer &vl, weights &w)
     {
         static int n = 1;
         static gama g(gama_init_value, &n);
@@ -369,11 +369,12 @@ namespace pj
             a = inv_S_F(vl, w, &sampler, &identity_vis_lay, row),
             b = inv_S_F(vl, w, &sampler, &tanh_matrix, hid_node_num);
         w.W = w.W - g * W;
-        w.a = w.a - g * a * pow(10, -4);
-        w.b = w.b - g * b * pow(10, -4);
-        // n++;
+        w.a = w.a - g * a * pow(10, -3);
+        w.b = w.b - g * b * pow(10, -3);
+        n++;
         // arma::norm(w.W);
         // g.update();
+        return g.out();
     }
 }
 

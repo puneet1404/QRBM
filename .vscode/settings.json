@@ -67,5 +67,5 @@
         "typeinfo": "cpp",
         "variant": "cpp"
     },
-    "C_Cpp.default.intelliSenseMode": "gcc-x64"
+    "C_Cpp.default.intelliSenseMode": "linux-gcc-x86"
 }

@@ -58,7 +58,8 @@ public:
     void printz();
     double min_eig_value_per_site();
     double min_eig_value();
-    arma::cx_vec3 magnetization_calc(int i);
+    void magnetization_calc();
+    int ground_state_no =0 ;
 };
 
 /*
@@ -90,6 +91,7 @@ hamiltoian_matrix::hamiltoian_matrix()
     }
     Hamiltonian = calc_hamiltonian();
     arma::eig_sym(Eigen_values, Eigen_states, Hamiltonian);
+    magnetization_calc();
 }
 
 hamiltoian_matrix::hamiltoian_matrix(double l /*value of h for magnetic field */,
@@ -191,29 +193,32 @@ double hamiltoian_matrix::min_eig_value()
     {
         if (Eigen_values[i] < lowest_value)
         {
-            n = i;
+            ground_state_no = i;
             lowest_value = Eigen_values[i];
         }
     }
     return lowest_value;
 }
 
-// arma::cx_vec3 hamiltoian_matrix::magnetization_calc(int n)
-// {
-//     arma::cx_dmat X_sum, Y_sum, Z_sum;
-//     double X_mag=0, Y_mag=0, Z_mag=0;
-//     for (size_t i = 0; i < num; i++)
-//     {
-//         X_sum += X[i];
-//         Y_sum += Y[i];
-//         Z_sum += Z[i];
-//     }
-//     (cout<<(arma::trans(Eigen_states.col(n)) * X_sum * Eigen_states.col(n)));
-//     cout<<((arma::trans(Eigen_states.col(n)) * Y_sum * Eigen_states.col(n)));
-//     cout<<((arma::trans(Eigen_states.col(n)) * Z_sum * Eigen_states.col(n)));
-//     // arma::cx_vec3 vec{X_mag, Y_mag, Z_mag};
-//     //return vec;
-// }
+void hamiltoian_matrix::magnetization_calc()
+{
+    min_eig_value();
+    arma::cx_dmat X_sum(pow(number_of_sites,dim),pow(number_of_sites,dim)),
+     Y_sum(pow(number_of_sites,dim),pow(number_of_sites,dim)), 
+     Z_sum(pow(number_of_sites,dim),pow(number_of_sites,dim));
+    double X_mag=0, Y_mag=0, Z_mag=0;
+    for (size_t i = 0; i < num; i++)
+    {
+        X_sum += X[i];
+        Y_sum += Y[i];
+        Z_sum += Z[i];
+    }
+    cout<<((arma::trans(Eigen_states.col(ground_state_no)) * X_sum * Eigen_states.col(ground_state_no)))<<"\n";
+    cout<<(((Eigen_states.col(ground_state_no).t()) * Y_sum * Eigen_states.col(ground_state_no)))<<"\n";
+    cout<<((arma::trans(Eigen_states.col(ground_state_no)) * Z_sum * Eigen_states.col(ground_state_no)))<<"\n";
+    // arma::cx_vec3 vec{X_mag, Y_mag, Z_mag};
+    //return vec;
+}
 
 arma::cx_dmat hamiltoian_matrix::calc_hamiltonian()
 {

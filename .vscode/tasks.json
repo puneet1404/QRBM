@@ -13,7 +13,7 @@
                 "main.cpp",
                 "-O3",
                 // "-s",
-                // "-g",
+                "-g",
                 "-lginac",
                 "-lcln",
                 "-lgmp",

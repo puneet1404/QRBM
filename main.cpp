@@ -7,7 +7,7 @@
 #include <random>
 #include <matplot/matplot.h>
 #include "functions/ExactSol.h"
-#include "functions/somethingig2.h"
+#include  "functions/RBM.h"
 #include "functions/constants.h"
 using namespace std;
 
@@ -47,11 +47,11 @@ double avg_cal(const vector<double> &a, int n)
 
 double &min_eigen_value(bool s = pj::exact_cal_bool)
 {
-	static double t=0;
+	static double t = 0;
 	if (s)
 	{
-		if(t!=0)
-		return t;
+		if (t != 0)
+			return t;
 		number_of_sites = pj::row;
 		J = pj::J;
 		H = pj::H;
@@ -67,7 +67,7 @@ double &min_eigen_value(bool s = pj::exact_cal_bool)
 }
 string cout_str(bool s = pj::exact_cal_bool)
 {
-	if(s)
+	if (s)
 	{
 		return ("exact value is \t\t=");
 	}
@@ -106,41 +106,47 @@ int main()
 		{
 			for (size_t i = 0; i < 500; i++)
 			{
+				gama++;
 				g = pj::W_update(VL, W);
 				// cout<<i<<"\n";
 
 				e_loc_avg.push_back((pj::E_loc_avg(VL, W)));
 				e_loc.push_back(avg_cal(e_loc_avg, pj::run_avg_win));
 				n.push_back(gama);
-				gama++;
-				if (gama % 10 == 0 && pj::display_togle)
+				if (gama % pj::plot_interval == 0 && pj::display_togle)
 				{
-					// VL= pj::sampler(VL,W);
 					cout << "---------------------------------------------------------\n";
 					double avg = avg_cal(e_loc_avg, pj::run_avg_win);
 					cout << "e loc avg per site is  =" << avg / pj::row << "\n"
 						 << "e loc value per site is =" << avg_cal(e_loc, pj::run_avg_win) / pj::row << "\n"
-						  << ((pj::exact_cal_bool)?("exact value is \t\t="):("the previous value is\t=")) << min_eigen_value() / pj::row << "\n"
-						  << "and their difference is = " << (avg - min_eigen_value()) / pj::row << "\n"
+						 << ((pj::exact_cal_bool) ? ("exact value is \t\t=") : ("the previous value is\t=")) << min_eigen_value() / pj::row << "\n"
+						 << "and their difference is = " << (avg - min_eigen_value()) / pj::row << "\n"
 						 << "the percentage error is = " << abs((avg - min_eigen_value()) * 100 / (avg)) << "%\n"
 						 << "w is \t\t\t=" << arma::norm(W.W) << "\n"
 						 << "a is \t\t\t=" << arma::norm(W.a) << "\n"
 						 << "b is \t\t\t=" << arma::norm(W.b) << "\n"
 						 << "gamma is \t\t=" << g << "\n"
 						 << "this is the  " << gama << "th turn" << endl;
-					
-						 // min_eigen_value() = avg;
 					plot(n, e_loc_avg, 20 + 1);
 					plot(n, e_loc, 22);
 					// W.shake(g);
-				}
-				// if( gama%100==0)
-				// {
+					if (!pj::exact_cal_bool)
+					min_eigen_value() =avg;
 
-				// 	plot(n, e_loc, 20+1);
-				// 	cout<<i<<"\n";
-				// 	// VL=pj::sampler(VL,W);
-				// }
+				}
+				if (pj::graph_clear_after_interval&&gama%(pj::graph_clear_interval)==0)
+				{
+					n.clear();
+					e_loc.clear();
+					e_loc_avg.clear();
+				}
+				
+				if (gama == pj::graph_cuttoff)
+				{
+					n.clear();
+					e_loc.clear();
+					e_loc_avg.clear();
+				}
 			}
 			if (pj::picture_rest)
 			{
@@ -156,6 +162,7 @@ int main()
 		cout << W.W << "\n";
 		cout << W.b << "\n";
 		cout << W.a << "\n";
+		cout << "eloc= " << pj::E_loc_avg(VL, W) << "\n";
 	}
 
 	auto end = std::chrono::high_resolution_clock::now();

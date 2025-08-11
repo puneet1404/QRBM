@@ -58,7 +58,7 @@ public:
     void printz();
     double min_eig_value_per_site();
     double min_eig_value();
-    void magnetization_calc();
+    arma::cx_mat magnetization_calc();
     int ground_state_no =0 ;
 };
 
@@ -200,24 +200,27 @@ double hamiltoian_matrix::min_eig_value()
     return lowest_value;
 }
 
-void hamiltoian_matrix::magnetization_calc()
+arma::cx_mat hamiltoian_matrix::magnetization_calc()
 {
     min_eig_value();
-    arma::cx_dmat X_sum(pow(number_of_sites,dim),pow(number_of_sites,dim)),
-     Y_sum(pow(number_of_sites,dim),pow(number_of_sites,dim)), 
-     Z_sum(pow(number_of_sites,dim),pow(number_of_sites,dim));
-    double X_mag=0, Y_mag=0, Z_mag=0;
+    arma::cx_dmat X_sum(pow(2,number_of_sites),pow(2,number_of_sites)),
+     Y_sum(pow(2,number_of_sites),pow(2,number_of_sites)), 
+     Z_sum(pow(2,number_of_sites),pow(2,number_of_sites));
+    complex<double> X_mag=0, Y_mag=0, Z_mag=0;
     for (size_t i = 0; i < num; i++)
     {
         X_sum += X[i];
         Y_sum += Y[i];
         Z_sum += Z[i];
     }
-    cout<<((arma::trans(Eigen_states.col(ground_state_no)) * X_sum * Eigen_states.col(ground_state_no)))<<"\n";
-    cout<<(((Eigen_states.col(ground_state_no).t()) * Y_sum * Eigen_states.col(ground_state_no)))<<"\n";
-    cout<<((arma::trans(Eigen_states.col(ground_state_no)) * Z_sum * Eigen_states.col(ground_state_no)))<<"\n";
-    // arma::cx_vec3 vec{X_mag, Y_mag, Z_mag};
-    //return vec;
+    X_mag=arma::as_scalar(arma::trans(Eigen_states.col(ground_state_no)) * X_sum * Eigen_states.col(ground_state_no));
+    Z_mag=arma::as_scalar((arma::trans(Eigen_states.col(ground_state_no)) * Z_sum * Eigen_states.col(ground_state_no)));
+    Y_mag=arma::as_scalar(((Eigen_states.col(ground_state_no).t()) * Y_sum * Eigen_states.col(ground_state_no)));
+    arma::cx_mat mag_vec(3,1);
+    mag_vec(0,0)=X_mag;
+    mag_vec(0,0)=Y_mag;
+    mag_vec(0,0)=Z_mag;
+    return mag_vec;
 }
 
 arma::cx_dmat hamiltoian_matrix::calc_hamiltonian()

@@ -221,51 +221,74 @@ namespace pj
         return VL;
     }
 
-
     // In namespace pj
 
-// Calculates log(psi(S')) - log(psi(S)) efficiently for a single spin flip at index 'k'
-long double log_psi_diff(int k, const visible_layer &VL, const weights &w) {
-    const mat& S = VL.S;
-    const mat& W = w.W;
-    const mat& a = w.a;
-    const mat& b = w.b;
+    // Calculates log(psi(S')) - log(psi(S)) efficiently for a single spin flip at index 'k'
+    long double log_psi_diff(int k, const visible_layer &VL, const weights &w)
+    {
+        const mat &S = VL.S;
+        const mat &W = w.W;
+        const mat &a = w.a;
+        const mat &b = w.b;
 
-    long double delta_log_psi = -2.0 * a(k, 0) * S(k, 0);
+        long double delta_log_psi = -2.0 * a(k, 0) * S(k, 0);
 
-    mat theta = w.b + w.W * S; // Original theta
+        mat theta = w.b + w.W * S; // Original theta
 
-    for (size_t j = 0; j < hid_node_num; ++j) {
-        double theta_j_prime = theta(j, 0) - 2.0 * W(j, k) * S(k, 0);
-        delta_log_psi += log(cosh(activation_function(theta_j_prime))) - log(cosh(activation_function(theta(j, 0))));
-    }
-    return delta_log_psi;
-}
-
-// A new p_ratio that uses the efficient difference calculation
-long double p_ratio_fast(int k_flipped, const visible_layer &VL, const weights &w)
-{
-    return exp(log_psi_diff(k_flipped, VL, w));
-}
-
-// Update E_loc to use this new function
-long double E_loc_fast(visible_layer VL, const weights &W)
-{
-    long double e_loc_val = 0;
-    // Term for interactions: J * sum(sig_z(i)*sig_z(i+1))
-    for (size_t i = 0; i < row-1; i++) {
-        e_loc_val += -J * VL.S(i, 0) * VL.S((i + 1) % row, 0);
+        for (size_t j = 0; j < hid_node_num; ++j)
+        {
+            double theta_j_prime = theta(j, 0) - 2.0 * W(j, k) * S(k, 0);
+            delta_log_psi += log(cosh(activation_function(theta_j_prime))) - log(cosh(activation_function(theta(j, 0))));
+        }
+        return delta_log_psi;
     }
 
-    // Term for transverse field: H * sum(sig_x)
-    for (size_t i = 0; i < row; i++) {
-        e_loc_val += -H * p_ratio_fast(i, VL, W);
+    long double log_psi_sum(int k, const visible_layer &VL, const weights &w)
+    {
+        const mat &S = VL.S;
+        const mat &W = w.W;
+        const mat &a = w.a;
+        const mat &b = w.b;
+
+        long double delta_log_psi = arma::as_scalar(S.t() * a) - 2.0 * a(k, 0) * S(k, 0);
+
+        mat theta = w.b + w.W * S; // Original theta
+
+        for (size_t j = 0; j < hid_node_num; ++j)
+        {
+            double theta_j_prime = theta(j, 0) - 2.0 * W(j, k) * S(k, 0);
+            delta_log_psi += log(cosh(activation_function(theta_j_prime))) + log(cosh(activation_function(theta(j, 0))));
+        }
+        return delta_log_psi;
     }
-    return e_loc_val;
-}
 
+    long double p_ratio_fast(int k_flipped, const visible_layer &VL, const weights &w)
+    {
+        return exp(log_psi_diff(k_flipped, VL, w));
+    }
 
+    long double p_prod(int k_flipped, const visible_layer &vl, const weights &w)
+    {
+        return exp(log_psi_sum(k_flipped, vl, w));
+    }
 
+    // Update E_loc to use this new function
+    long double E_loc_fast(visible_layer VL, const weights &W)
+    {
+        long double e_loc_val = 0;
+        // Term for interactions: J * sum(sig_z(i)*sig_z(i+1))
+        for (size_t i = 0; i < row - 1; i++)
+        {
+            e_loc_val += -J * VL.S(i, 0) * VL.S((i + 1) % row, 0);
+        }
+
+        // Term for transverse field: H * sum(sig_x)
+        for (size_t i = 0; i < row; i++)
+        {
+            e_loc_val += -H * p_ratio_fast(i, VL, W);
+        }
+        return e_loc_val;
+    }
 
     long double E_loc(visible_layer VL, const weights &W)
     {
@@ -299,6 +322,28 @@ long double E_loc_fast(visible_layer VL, const weights &W)
         return e_loc / itt_no;
     }
 
+    long double magnetization_x(const visible_layer &vl, const weights &w)
+    {
+        long double m_x = 0;
+        visible_layer vl_m = vl;
+        for (size_t i = 0; i < row - 1; i++)
+        {
+            m_x += log_psi_sum(i, vl, w);
+        }
+        return m_x;
+    }
+
+    long double magnetization_avg_x(visible_layer &vl, const weights &w, int N = itt_value)
+    {
+        long double avg_m = 0;
+        for (size_t i = 0; i < N; i++)
+        {
+            vl = sampler(vl, w);
+            avg_m += magnetization_x(vl, w);
+        }
+        return avg_m / N;
+    }
+
     // thhis function keeps E_loc_avg in memory untill weights or VL is changed;
 
     void O_init(vector<mat> &O, vector<mat> &OT, vector<mat> &OT_O, vector<mat> &E_OT, const visible_layer &vl, const weights &w,
@@ -320,16 +365,16 @@ long double E_loc_fast(visible_layer VL, const weights &W)
                   function<visible_layer(const visible_layer, const weights &, std::random_device &)> sampler_function, int N = itt_value)
     {
         vl = sampler_function(vl, w, rd);
-        O += matrix_maker(sampler_function(vl,w,rd), w);
-        OT += matrix_maker(sampler_function(vl,w,rd), w).t();
-        OT_O += matrix_maker(sampler_function(vl,w,rd), w).t() *
-                matrix_maker(sampler_function(vl,w,rd), w);
-        E_OT += (E_loc(sampler_function(vl,w,rd), w)) * matrix_maker(sampler_function(vl,w,rd), w).t();
+        O += matrix_maker(sampler_function(vl, w, rd), w);
+        OT += matrix_maker(sampler_function(vl, w, rd), w).t();
+        OT_O += matrix_maker(sampler_function(vl, w, rd), w).t() *
+                matrix_maker(sampler_function(vl, w, rd), w);
+        E_OT += (E_loc(sampler_function(vl, w, rd), w)) * matrix_maker(sampler_function(vl, w, rd), w).t();
     }
 
     void O_averager(vector<mat> &O, vector<mat> &OT, vector<mat> &OT_O, vector<mat> &E_OT, visible_layer &vl, const weights &w,
                     vector<function<mat(const visible_layer, const weights &)>> matrix_maker,
-                    vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_function , int N = itt_value)
+                    vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_function, int N = itt_value)
     {
         for (size_t j = 0; j < N; j++)
         {
@@ -338,7 +383,6 @@ long double E_loc_fast(visible_layer VL, const weights &W)
                 O_update(O[i], OT[i], OT_O[i], E_OT[i], vl, w, matrix_maker[i], sampler_function[i]);
             }
         }
-        
     }
 
     vector<mat> inv_S_F(visible_layer &vl, const weights &w, vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_function,
@@ -361,7 +405,7 @@ long double E_loc_fast(visible_layer VL, const weights &W)
         }
 
         static long double lamda = pow(10, 2), a = 100;
-        a = a * 0.99;
+        a = a * 0.9;
         lamda = (a < pow(10, -4)) ? (pow(10, -4)) : (a);
 
         O_init(O, OT, OT_O, E_OT, vl, w, matrix_maker, sampler_function);
@@ -381,51 +425,92 @@ long double E_loc_fast(visible_layer VL, const weights &W)
         return m;
     }
 
-    // bool W_update_check(visible_layer vl, weights &weight, mat W, mat a, mat b, gama &g)
-    // {
-    //     static double eloc = E_loc(vl, weight);
-    //     weights w = weight;
-    //     w.a = w.a - a;
-    //     w.W = w.W - W;
-    //     w.b = w.b - b;
-    //     if (E_loc(vl, w) == eloc)
-    //     {
-
-    //         std::cout << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
-    //                   << "update prevented\n and a random value is added<<\n"
-    //                   << "+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n";
-    //         weight.shake(g);
-    //         return false;
-    //     }
-    //     else
-    //     {
-    //         eloc = E_loc(vl, w);
-    //         return true;
-    //     }
-    // }
+    weights W_update_chooser(visible_layer &vl, const weights &wei, int & n)
+    {
+        // static int n = 1;
+        double value = E_loc_avg(vl,wei);
+        weights w=wei,w2=wei;
+        if(check_mulitple_vales_of_update)
+        {
+            for (size_t t = 0; t < no_of_mulitple_vales_of_update; t++)
+            {          
+                vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_vector;
+                for (size_t i = 0; i < 3; i++)
+                {
+                    sampler_vector.push_back(sampler);
+                }
+                
+                
+                vector<function<mat(const visible_layer, const weights &)>> matrix_maker;
+                matrix_maker.push_back(vis_cross_tanh);
+                matrix_maker.push_back(identity_vis_lay);
+                matrix_maker.push_back(tanh_matrix);
+                
+                static gama g(gama_init_value, &n);
+                
+                vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
+                
+                (w.W) -= g * W_update[0];
+                (w.a) -= g * W_update[1] * pow(10, -2);
+                (w.b) -= g * W_update[2] * pow(10, -2);
+                double a=E_loc_avg(vl,w); 
+                if(a<value)
+                {
+                    w2=w;
+                    value=a;
+                }
+                w=wei;
+            }
+            return w2;
+        }
+        else
+        {
+            vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_vector;
+                for (size_t i = 0; i < 3; i++)
+                {
+                    sampler_vector.push_back(sampler);
+                }
+                
+                
+                vector<function<mat(const visible_layer, const weights &)>> matrix_maker;
+                matrix_maker.push_back(vis_cross_tanh);
+                matrix_maker.push_back(identity_vis_lay);
+                matrix_maker.push_back(tanh_matrix);
+                
+                static gama g(gama_init_value, &n);
+                
+                vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
+                
+                (w.W) -= g * W_update[0];
+                (w.a) -= g * W_update[1] * pow(10, -2);
+                (w.b) -= g * W_update[2] * pow(10, -2);
+                return w;
+        }
+    }
 
     double W_update(visible_layer &vl, weights &w)
     {
-        vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_vector;
-        for (size_t i = 0; i < 3; i++)
-        {
-            sampler_vector.push_back(sampler);
-        }
-
         static int n = 1;
+        w=W_update_chooser(vl,w,n);
+        // vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_vector;
+        // for (size_t i = 0; i < 3; i++)
+        // {
+        //     sampler_vector.push_back(sampler);
+        // }
 
-        vector<function<mat(const visible_layer, const weights &)>> matrix_maker;
-        matrix_maker.push_back(vis_cross_tanh);
-        matrix_maker.push_back(identity_vis_lay);
-        matrix_maker.push_back(tanh_matrix);
 
-        static gama g(gama_init_value, &n);
+        // vector<function<mat(const visible_layer, const weights &)>> matrix_maker;
+        // matrix_maker.push_back(vis_cross_tanh);
+        // matrix_maker.push_back(identity_vis_lay);
+        // matrix_maker.push_back(tanh_matrix);
 
-        vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
+        gama g(gama_init_value, &n);
 
-    (w.W)-=g*W_update[0];
-    (w.a)-=g*W_update[1]*pow(10,-2);
-    (w.b)-=g*W_update[2]*pow(10,-2);
+        // vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
+
+        // (w.W) -= g * W_update[0];
+        // (w.a) -= g * W_update[1] * pow(10, -2);
+        // (w.b) -= g * W_update[2] * pow(10, -2);
 
         n++;
         // arma::norm(w.W);

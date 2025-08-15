@@ -60,6 +60,9 @@ namespace pj
             W = 0.1 * arma::randu(hid_node_num, row);
             a = 0.1 * arma::randu(row, 1);
             b = 0.1 * arma::randu(hid_node_num, 1);
+            W.for_each([](auto & m ){  m=m-.1; });
+            a.for_each([](auto & m ){  m=m-.1; });
+            b.for_each([](auto & m ){  m=m-.1; });
         }
         void operator/(double n)
         {
@@ -328,7 +331,7 @@ namespace pj
         visible_layer vl_m = vl;
         for (size_t i = 0; i < row - 1; i++)
         {
-            m_x += log_psi_sum(i, vl, w);
+            m_x += +p_prod(i,vl,w);
         }
         return m_x;
     }
@@ -451,8 +454,8 @@ namespace pj
                 vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
                 
                 (w.W) -= g * W_update[0];
-                (w.a) -= g * W_update[1] * pow(10, -2);
-                (w.b) -= g * W_update[2] * pow(10, -2);
+                (w.a) -= g * W_update[1] * pow(10, -4);
+                (w.b) -= g * W_update[2] * pow(10, -4);
                 double a=E_loc_avg(vl,w); 
                 if(a<value)
                 {

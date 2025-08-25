@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <random>
 #include <stdexcept>
+#include <set>
 #include "constants.h"
 // #include <ginac/ginac.h>
 
@@ -16,7 +17,7 @@
 RBM
 there will exist a struct of wieghts W and then this struct of wieghts will
 we used to calculate the psi(s)*/
-
+using namespace std;
 namespace pj
 {
     // namespace g = GiNaC;
@@ -157,6 +158,31 @@ namespace pj
             }
             return m;
         }
+        int to_int()
+        {
+            int b;
+            for (size_t i = 0; i < row; i++)
+            {
+                b < (S(i, 0) == -1) ? (0) : (1);
+            }
+            return b;
+        }
+        void to_S(int n )
+        {
+            for (size_t i = 0; i < row; i++)
+            {
+                S(i)=(n%2==0)?(1):(-1);
+            }
+            
+        }
+        // bool operator<(visible_layer& n )
+        // {
+        //     if(to_int()<n.to_int())
+        //     {
+        //         return true; 
+        //     }
+        //     return false;
+        // }
     };
 
     // these are small function which take  visible layer as an input and convert it into other matricies that are to be use in

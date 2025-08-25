@@ -34,6 +34,9 @@ namespace pj
     double (*activation_function)(double) = lin_max;
     double (*activation_function_derivative)(double) = d_lin_max;
 
+    //magnetization partition function sampler 
+    // visible_layer (*magnetization_sampler)(visible_layer , const weights &, std::random_device &rd) =sampler_md ;
+
     // quality of life
     const bool picture_rest = false;
     const bool display_togle = true;

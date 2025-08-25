@@ -9,6 +9,7 @@
 #include "functions/ExactSol.h"
 #include "functions/RBM.h"
 #include "functions/constants.h"
+#include "functions/observales.h"
 using namespace std;
 
 #define Number 10
@@ -91,7 +92,7 @@ double &mag_calc(bool s = pj::exact_cal_bool)
 		matrix.min_eig_value();
 		cout << "\n"
 			 << matrix.magnetization_calc() << "\n";
-		t = real(matrix.magnetization_calc()(2, 0));
+		t = real(matrix.magnetization_calc()(0, 0));
 		n++;
 		return t;
 	}
@@ -150,7 +151,14 @@ int main()
 	// uniform_int_distribution<int> dist(0, pj::row - 1);
 	auto start = std::chrono::high_resolution_clock::now();
 	arma::arma_rng::set_seed_random();
-
+	    pj::visible_layer vl;
+    // int n= vl.to_int();
+    // std::cout<<vl.S;
+    // std::cout<<vl.to_int()<<"\n";
+    // pj::visible_layer vl2;
+    // vl2.to_S(n);
+    // std::cout<<vl2.S;
+	// return 0;
 	// number_of_sites = pj::row;
 	// J = pj::J;
 	// H = pj::H;
@@ -162,7 +170,7 @@ int main()
 
 	pj::visible_layer VL;
 	pj::weights W;
-
+	pj::magnetization mag(&VL,&W);
 	double g = 0;
 	double m = 0;
 
@@ -182,7 +190,7 @@ int main()
 				e_loc_avg.push_back((pj::E_loc_avg(VL, W)) / pj::row);
 				e_loc.push_back(avg_cal(e_loc_avg, pj::run_avg_win));
 				n.push_back(gama);
-				// magnetization.push_back(pj::magnetization_z(VL, W));
+				magnetization.push_back(mag.mag_x_avg(pj::sampler_mp));
 
 				if (gama % pj::plot_interval == 0 && pj::display_togle)
 					print_info(W, gama, g, e_loc_avg, e_loc, magnetization, n);

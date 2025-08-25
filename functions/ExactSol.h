@@ -8,7 +8,7 @@
 #include <armadillo>
 #include <iostream>
 #include <complex>
-#include <set>
+// #include <set>
 
 int number_of_sites(10);
 int dim(2);
@@ -179,6 +179,7 @@ double hamiltoian_matrix::min_eig_value_per_site()
     double lowest_value = 0;
     for (auto i : Eigen_values)
     {
+        cout<<i<<"\n";
         if (i < lowest_value)
             lowest_value = i;
     }

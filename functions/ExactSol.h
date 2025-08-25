@@ -3,7 +3,7 @@
 
 // ↑ ↓
 
-#include <eigen3/Eigen/Dense>
+// #include <eigen3/Eigen/Dense>
 #include <vector>
 #include <armadillo>
 #include <iostream>
@@ -218,8 +218,8 @@ arma::cx_mat hamiltoian_matrix::magnetization_calc()
     Y_mag=arma::as_scalar(((Eigen_states.col(ground_state_no).t()) * Y_sum * Eigen_states.col(ground_state_no)));
     arma::cx_mat mag_vec(3,1);
     mag_vec(0,0)=X_mag;
-    mag_vec(0,0)=Y_mag;
-    mag_vec(0,0)=Z_mag;
+    mag_vec(1,0)=Y_mag;
+    mag_vec(2,0)=Z_mag;
     return mag_vec;
 }
 

@@ -31,22 +31,31 @@ namespace pj
     struct gama
     {
         long double g = 0;
+        double init_value;
         long double rate = gama_decrement_exponent;
         int *int_123 = nullptr;
+        long double t;
         gama(double r = .01, int *n = nullptr)
         {
             g = r;
+            init_value = r;
             rate = gama_decrement_exponent;
             int_123 = n;
+            t = g;
         }
         auto operator*(mat m)
         {
-            double t = g / pow((*int_123), rate);
+            if (*int_123 > 200)
+            {
+                t = g / pow((*int_123 - 200), rate);
+                return t * m;
+            }
+            t = g;
             return t * m;
         }
         double out()
         {
-            return g / pow((*int_123), rate);
+            return t;
         }
     };
 
@@ -57,12 +66,12 @@ namespace pj
         mat b;
         weights()
         {
-            W = 0.1 * arma::randu(hid_node_num, row);
-            a = 0.1 * arma::randu(row, 1);
-            b = 0.1 * arma::randu(hid_node_num, 1);
-            W.for_each([](auto & m ){  m=m-.1; });
-            a.for_each([](auto & m ){  m=m-.1; });
-            b.for_each([](auto & m ){  m=m-.1; });
+            W = arma::randn(hid_node_num, row, arma::distr_param(mean, sd));
+            a = arma::randn(row, 1, arma::distr_param(mean, sd));
+            b = arma::randn(hid_node_num, 1, arma::distr_param(mean, sd));
+            // W.for_each([](auto & m ){  m=m-.01; });
+            // a.for_each([](auto & m ){  m=m-.01; });
+            // b.for_each([](auto & m ){  m=m-.01; });
         }
         void operator/(double n)
         {
@@ -161,10 +170,10 @@ namespace pj
     }
     mat tanh_matrix(const visible_layer &vl, const weights &w)
     {
-        mat b = theta_matrix(vl, w);
-        b.for_each([](auto &i)
-                   { i = tanh(activation_function(i)) * activation_function_derivative(i); });
-        return b.t();
+        // mat b = theta_matrix(vl, w);
+        // b.for_each([](auto &i)
+        //            { i = tanh(activation_function(i)) * activation_function_derivative(i); });
+        return arma::tanh(theta_matrix(vl, w)).t();
     }
     mat identity_vis_lay(visible_layer vl, const weights &w)
     {
@@ -192,7 +201,7 @@ namespace pj
 
         // sigmai* a(i) implimnetation
         long double sig_i_a_i = 0;
-        sig_i_a_i = arma::as_scalar(VL.S.t() * WEI.a);
+        sig_i_a_i = arma::accu(VL.S.t() * WEI.a);
 
         long double cosh_theta = 0;
         mat m = theta_matrix(VL, WEI);
@@ -204,16 +213,16 @@ namespace pj
         }
         psi = (cosh_theta) + (sig_i_a_i);
         inf_check(psi);
-        return (psi);
+        return (psi * beta);
     }
 
     long double p_ratio(visible_layer VL, visible_layer VL2, const weights &w)
     {
-        long double a = psi(VL, w), b = psi(VL2, w);
-        return exp(a - b);
+        // long double a = psi(VL, w), b = psi(VL2, w);
+        return exp(psi(VL, w) - psi(VL2, w));
     }
 
-    visible_layer sampler(visible_layer VL, const weights &w, std::random_device &rd = pj::rd)
+    visible_layer sampler_mp(visible_layer VL, const weights &w, std::random_device &rd = pj::rd)
     {
         std::uniform_int_distribution<int> dist(0, VL.S.n_rows - 1);
         std::uniform_real_distribution<long double> realdist(0, 1);
@@ -224,7 +233,13 @@ namespace pj
         return VL;
     }
 
-    // In namespace pj
+    visible_layer sampler_rw(visible_layer VL, const weights &w, std::random_device &rd = pj::rd)
+    {
+        std::uniform_int_distribution<int> dist(0, VL.S.n_rows - 1);
+        visible_layer vl = VL;
+        vl.flip(dist(rd));
+        return VL;
+    }
 
     // Calculates log(psi(S')) - log(psi(S)) efficiently for a single spin flip at index 'k'
     long double log_psi_diff(int k, const visible_layer &VL, const weights &w)
@@ -243,7 +258,7 @@ namespace pj
             double theta_j_prime = theta(j, 0) - 2.0 * W(j, k) * S(k, 0);
             delta_log_psi += log(cosh(activation_function(theta_j_prime))) - log(cosh(activation_function(theta(j, 0))));
         }
-        return delta_log_psi;
+        return delta_log_psi * beta;
     }
 
     long double log_psi_sum(int k, const visible_layer &VL, const weights &w)
@@ -317,37 +332,13 @@ namespace pj
         visible_layer VL2 = VL, vl3 = VL2;
         for (size_t i = 0; i < itt_no - 1; i++)
         {
-            VL2 = sampler(VL2, W);
+            VL2 = sampler_mp(VL2, W);
             e_loc += E_loc_fast(VL2, W);
             // vl3 = VL2;
             // }
         }
         return e_loc / itt_no;
     }
-
-    long double magnetization_x(const visible_layer &vl, const weights &w)
-    {
-        long double m_x = 0;
-        visible_layer vl_m = vl;
-        for (size_t i = 0; i < row - 1; i++)
-        {
-            m_x += +p_prod(i,vl,w);
-        }
-        return m_x;
-    }
-
-    long double magnetization_avg_x(visible_layer &vl, const weights &w, int N = itt_value)
-    {
-        long double avg_m = 0;
-        for (size_t i = 0; i < N; i++)
-        {
-            vl = sampler(vl, w);
-            avg_m += magnetization_x(vl, w);
-        }
-        return avg_m / N;
-    }
-
-    // thhis function keeps E_loc_avg in memory untill weights or VL is changed;
 
     void O_init(vector<mat> &O, vector<mat> &OT, vector<mat> &OT_O, vector<mat> &E_OT, const visible_layer &vl, const weights &w,
                 vector<function<mat(const visible_layer, const weights &)>> matrix_maker,
@@ -381,6 +372,7 @@ namespace pj
     {
         for (size_t j = 0; j < N; j++)
         {
+            // cout<<j<<"\n";
             for (size_t i = 0; i < 3; i++)
             {
                 O_update(O[i], OT[i], OT_O[i], E_OT[i], vl, w, matrix_maker[i], sampler_function[i]);
@@ -428,96 +420,75 @@ namespace pj
         return m;
     }
 
-    weights W_update_chooser(visible_layer &vl, const weights &wei, int & n)
+    weights W_update_chooser(visible_layer &vl, const weights &wei, int &n)
     {
         // static int n = 1;
-        double value = E_loc_avg(vl,wei);
-        weights w=wei,w2=wei;
-        if(check_mulitple_vales_of_update)
+        double value = E_loc_avg(vl, wei);
+        weights w = wei, w2 = wei;
+        if ((check_mulitple_vales_of_update) &&
+            (n > check_mulitple_vales_of_update_after))
         {
             for (size_t t = 0; t < no_of_mulitple_vales_of_update; t++)
-            {          
+            {
                 vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_vector;
                 for (size_t i = 0; i < 3; i++)
                 {
-                    sampler_vector.push_back(sampler);
+                    sampler_vector.push_back(sampler_mp);
                 }
-                
-                
+
                 vector<function<mat(const visible_layer, const weights &)>> matrix_maker;
                 matrix_maker.push_back(vis_cross_tanh);
                 matrix_maker.push_back(identity_vis_lay);
                 matrix_maker.push_back(tanh_matrix);
-                
+
                 static gama g(gama_init_value, &n);
-                
+
                 vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
-                
+
                 (w.W) -= g * W_update[0];
-                (w.a) -= g * W_update[1] * pow(10, -4);
-                (w.b) -= g * W_update[2] * pow(10, -4);
-                double a=E_loc_avg(vl,w); 
-                if(a<value)
+                (w.a) -= g * W_update[1] * pow(10, -2);
+                (w.b) -= g * W_update[2] * pow(10, -2);
+                double a = E_loc_avg(vl, w);
+                if (a < value)
                 {
-                    w2=w;
-                    value=a;
+                    w2 = w;
+                    value = a;
                 }
-                w=wei;
+                w = wei;
             }
             return w2;
         }
         else
         {
             vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_vector;
-                for (size_t i = 0; i < 3; i++)
-                {
-                    sampler_vector.push_back(sampler);
-                }
-                
-                
-                vector<function<mat(const visible_layer, const weights &)>> matrix_maker;
-                matrix_maker.push_back(vis_cross_tanh);
-                matrix_maker.push_back(identity_vis_lay);
-                matrix_maker.push_back(tanh_matrix);
-                
-                static gama g(gama_init_value, &n);
-                
-                vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
-                
-                (w.W) -= g * W_update[0];
-                (w.a) -= g * W_update[1] * pow(10, -2);
-                (w.b) -= g * W_update[2] * pow(10, -2);
-                return w;
+            for (size_t i = 0; i < 3; i++)
+            {
+                sampler_vector.push_back(sampler_mp);
+            }
+
+            vector<function<mat(const visible_layer, const weights &)>> matrix_maker;
+            matrix_maker.push_back(vis_cross_tanh);
+            matrix_maker.push_back(identity_vis_lay);
+            matrix_maker.push_back(tanh_matrix);
+
+            static gama g(gama_init_value, &n);
+
+            vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
+
+            (w.W) -= g * W_update[0];
+            (w.a) -= g * W_update[1] * pow(10, -5);
+            (w.b) -= g * W_update[2] * pow(10, -5);
+            return w;
         }
     }
 
     double W_update(visible_layer &vl, weights &w)
     {
         static int n = 1;
-        w=W_update_chooser(vl,w,n);
-        // vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_vector;
-        // for (size_t i = 0; i < 3; i++)
-        // {
-        //     sampler_vector.push_back(sampler);
-        // }
-
-
-        // vector<function<mat(const visible_layer, const weights &)>> matrix_maker;
-        // matrix_maker.push_back(vis_cross_tanh);
-        // matrix_maker.push_back(identity_vis_lay);
-        // matrix_maker.push_back(tanh_matrix);
+        w = W_update_chooser(vl, w, n);
 
         gama g(gama_init_value, &n);
-
-        // vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
-
-        // (w.W) -= g * W_update[0];
-        // (w.a) -= g * W_update[1] * pow(10, -2);
-        // (w.b) -= g * W_update[2] * pow(10, -2);
-
         n++;
-        // arma::norm(w.W);
-        // g.update();
         return g.out();
     }
 }

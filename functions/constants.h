@@ -9,7 +9,7 @@ namespace pj
 {
     // spin lattice properties
     const int col = 1;
-    const int row = 10;
+    const int row = 20;
     // interaction variables
     const long double H = 1;
     const long double J = 1;
@@ -18,16 +18,16 @@ namespace pj
     const int hid_node_num = alpha * row;
 
     // training parameters
-    const double gama_init_value = .01;
-    const double gama_decrement_exponent = .3;
+    const double gama_init_value = .1;
+    const double gama_decrement_exponent = .5;
     const double mean = 0; // mean for initial random variable
-    const double sd = 0.05; // sd fro normal distribution of initial variable
-    const double itt_value = 1000;
+    const double sd = 0.005; // sd fro normal distribution of initial variable
+    const double itt_value = 5000;
     const bool multi_check = false;
     const bool check_mulitple_vales_of_update = false;
-    const int check_mulitple_vales_of_update_after = 1000;
+    const int check_mulitple_vales_of_update_after = 5000;
     const int no_of_mulitple_vales_of_update = 10;
-    double beta = 1;
+    double beta =.1;
 
     //! activation funtion for now are not being used
     // activation functions

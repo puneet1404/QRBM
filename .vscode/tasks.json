@@ -13,7 +13,7 @@
                 "main.cpp",
                 "-O3",
                 // "-s",
-                "-g",
+                // "-g",
                 // "-lginac",
                 // "-lcln",
                 // "-lgmp",
@@ -21,7 +21,7 @@
                 "-lmatplot",
                 "-lnodesoup",
                 "-fopenmp",
-                "-lbandicoot",
+                // "-lbandicoot",
             ],
             "group": {
                 "kind": "build",

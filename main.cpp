@@ -109,26 +109,26 @@ string cout_str(bool s = pj::exact_cal_bool)
 	}
 	return ("the previous value is\t=");
 }
-void print_info(pj::weights W, int gama, double g, vector<double> e_loc_avg, vector<double> e_loc, vector<double> mag, vector<double> n)
+void print_info(pj::weights W, pj::magnetization mag ,int gama, double g, vector<double> e_loc_avg, vector<double> e_loc,vector<double> magnetization,vector<double> n)
 
 {
 	cout << "---------------------------------------------------------\n";
 	double avg = avg_cal(e_loc_avg, pj::run_avg_win);
-	long double mag_avg = avg_cal(mag, pj::run_avg_win);
+	// long double mag_avg = mag.mag_x_avg(pj::sampler_mp);
 
 	cout << "e loc avg per site is  =" << avg << "\n"
 		 << "e loc value per site is =" << avg_cal(e_loc, pj::run_avg_win) << "\n"
 		 << ((pj::exact_cal_bool) ? ("exact value is \t\t=") : ("the previous value is\t="))
-		 << min_eigen_value() /
-				((pj::exact_cal_bool) ? (pj::row) : (1))
+		 << min_eigen_value() //
+				// ((pj::exact_cal_bool) ? (pj::row) : (1))
 		 << "\n"
 
 		 << "and their difference is = " << (avg - min_eigen_value() / ((pj::exact_cal_bool) ? (pj::row) : (1))) << "\n"
 		 << "the percentage error is = " << abs((avg - min_eigen_value() / ((pj::exact_cal_bool) ? (pj::row) : (1))) * 100 / (avg)) << "%\n"
-		 << "magnetization in z direction (calc) = " << mag_avg << "\n"
-		 << "magnetization in z direction (" << ((pj::exact_cal_bool) ? ("exact") : ("prev"))
-		 << ")= " << mag_calc() << "\n"
-		 << "error in magnetization is =" << (mag_calc() - mag_avg) << "\n"
+		 << "magnetization in z direction (calc) = " << mag.mag_x_avg(pj::sampler_mp) << "\n"
+		//  << "magnetization in z direction (" << ((pj::exact_cal_bool) ? ("exact") : ("prev"))
+		//  << ")= " << mag_calc() << "\n"
+		//  << "error in magnetization is =" << (mag_calc() - mag_avg) << "\n"
 
 		 << "w is \t\t\t=" << arma::norm(W.W) << "\n"
 		 << "a is \t\t\t=" << arma::norm(W.a) << "\n"
@@ -137,11 +137,10 @@ void print_info(pj::weights W, int gama, double g, vector<double> e_loc_avg, vec
 		 << "this is the  " << gama << "th turn" << endl;
 	plot(n, e_loc_avg, 20 + 1);
 	plot(n, e_loc, 22);
-	plot(n, mag, "magnetizationexact value is " + to_string(mag_calc()), 23);
-	// W.shake(g);
+	// plot(n, magnetization, "magnetizationexact value is " + to_string(mag_calc()), 23);
 	if (!pj::exact_cal_bool)
 	{
-		mag_calc() = mag_avg;
+		// mag_calc() = mag_avg;
 		min_eigen_value() = avg;
 	}
 }
@@ -151,22 +150,22 @@ int main()
 	// uniform_int_distribution<int> dist(0, pj::row - 1);
 	auto start = std::chrono::high_resolution_clock::now();
 	arma::arma_rng::set_seed_random();
-	    pj::visible_layer vl;
+	//     pj::visible_layer vl;
     // int n= vl.to_int();
     // std::cout<<vl.S;
-    // std::cout<<vl.to_int()<<"\n";
+    // std::cout<<n<<"\n";
     // pj::visible_layer vl2;
     // vl2.to_S(n);
     // std::cout<<vl2.S;
 	// return 0;
-	// number_of_sites = pj::row;
-	// J = pj::J;
-	// H = pj::H;
+	number_of_sites = pj::row;
+	J = pj::J;
+	H = pj::H;
 	// hamiltoian_matrix matrix;
 	// arma::cx_dmat hamiltonian = matrix.Hamiltonian;
 	// double min_value = matrix.min_eig_value();
-	// cout << "minimum eigen values are :\n"
-	// 	 << matrix.min_eig_value() << "\n";
+	// cout /*<< "minimum eigen values are :\n"*/ 
+		//  << matrix.min_eig_value() << "\n";
 
 	pj::visible_layer VL;
 	pj::weights W;
@@ -190,10 +189,10 @@ int main()
 				e_loc_avg.push_back((pj::E_loc_avg(VL, W)) / pj::row);
 				e_loc.push_back(avg_cal(e_loc_avg, pj::run_avg_win));
 				n.push_back(gama);
-				magnetization.push_back(mag.mag_x_avg(pj::sampler_mp));
+				// magnetization.push_back(mag.mag_x_avg(pj::sampler_mp));
 
 				if (gama % pj::plot_interval == 0 && pj::display_togle)
-					print_info(W, gama, g, e_loc_avg, e_loc, magnetization, n);
+					print_info(W,mag, gama, g, e_loc_avg, e_loc, magnetization,n);
 				if (pj::graph_clear_after_interval && ((pj::graph_clear_interval == 0) ? (1) : (gama % (pj::graph_clear_interval)) == 0))
 				{
 					n.clear();

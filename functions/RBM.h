@@ -35,7 +35,7 @@ namespace pj
         double init_value;
         long double rate = gama_decrement_exponent;
         int *int_123 = nullptr;
-        long double t;
+        double t;
         gama(double r = .01, int *n = nullptr)
         {
             g = r;
@@ -160,26 +160,28 @@ namespace pj
         }
         int to_int()
         {
-            int b;
-            for (size_t i = 0; i < row; i++)
+            unsigned long int b = 0;
+            for (size_t i = 1; i < row + 1; i++)
             {
-                b < (S(i, 0) == -1) ? (0) : (1);
+                b = b << 1;
+                b = (S(row - i, 0) == -1) ? ((b + 1)) : (b);
+                // cout<<"b="<<b<<endl;
             }
             return b;
         }
-        void to_S(int n )
+        void to_S(int n)
         {
             for (size_t i = 0; i < row; i++)
             {
-                S(i)=(n%2==0)?(1):(-1);
+                S(i) = (n % 2 == 0) ? (1) : (-1);
+                n = n >> 1;
             }
-            
         }
         // bool operator<(visible_layer& n )
         // {
         //     if(to_int()<n.to_int())
         //     {
-        //         return true; 
+        //         return true;
         //     }
         //     return false;
         // }
@@ -340,15 +342,15 @@ namespace pj
         // the hamiltonian is h*sum(sig_x)+ j*sum(sig_z(i)*sig_z(i+1))
         long double E_loc = 0;
         visible_layer m = VL;
-        for (size_t i = 0; i < row - 1; i++)
+        for (size_t i = 0; i < row; i++)
         {
             m.flip(i);
             E_loc += -J * VL.S(i % row, 0) * VL.S((i + 1) % row) - H * p_ratio(m, VL, W);
             m = VL;
         }
 
-        m.flip(row - 1);
-        E_loc += -H * p_ratio(m, VL, W);
+        // m.flip(row - 1);
+        // E_loc += -H * p_ratio(m, VL, W);
         return E_loc;
     }
 
@@ -359,7 +361,7 @@ namespace pj
         for (size_t i = 0; i < itt_no - 1; i++)
         {
             VL2 = sampler_mp(VL2, W);
-            e_loc += E_loc_fast(VL2, W);
+            e_loc += E_loc(VL2, W);
             // vl3 = VL2;
             // }
         }
@@ -501,9 +503,9 @@ namespace pj
 
             vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
 
-            (w.W) -= g * W_update[0];
-            (w.a) -= g * W_update[1] * pow(10, -5);
-            (w.b) -= g * W_update[2] * pow(10, -5);
+            (w.W) -= g * W_update[0] ;
+            (w.a) -= g * W_update[1] ;
+            (w.b) -= g * W_update[2] * pow(10, -3);
             return w;
         }
     }
@@ -515,6 +517,11 @@ namespace pj
 
         gama g(gama_init_value, &n);
         n++;
+        if (n % 100 == 0)
+        {
+            (beta<1)?(beta+=.1):(beta=1);
+        }
+
         return g.out();
     }
 }

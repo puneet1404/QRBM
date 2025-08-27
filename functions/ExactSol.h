@@ -179,7 +179,7 @@ double hamiltoian_matrix::min_eig_value_per_site()
     double lowest_value = 0;
     for (auto i : Eigen_values)
     {
-        cout<<i<<"\n";
+        // cout<<i<<"\n";
         if (i < lowest_value)
             lowest_value = i;
     }
@@ -192,9 +192,11 @@ double hamiltoian_matrix::min_eig_value()
     int n = 0;
     for (int i = 1; i < num; i++)
     {
+        cout<<Eigen_values[i]<<"\n";
         if (Eigen_values[i] < lowest_value)
         {
-            ground_state_no = i;
+            // cout<<Eigen_states[i];
+            // ground_state_no = i;
             lowest_value = Eigen_values[i];
         }
     }
@@ -227,11 +229,11 @@ arma::cx_mat hamiltoian_matrix::magnetization_calc()
 arma::cx_dmat hamiltoian_matrix::calc_hamiltonian()
 {
 	arma::cx_dmat hamiltonian = arma::zeros<arma::cx_dmat>(pow(dim,num),pow(dim,num));
-	for (size_t i = 0; i < num-1; i++)
+	for (size_t i = 0; i < num; i++)
 	{
-		hamiltonian += -J*Z[i]*Z[(i+1)%num] - H* X[i];
+		hamiltonian += -J*Z[i%num]*Z[(i+1)%num] - H* X[i];
 	}
-    hamiltonian+= -H*X[num-1];
+    // hamiltonian+= -H*X[num-1];
 	return hamiltonian;
 }
 

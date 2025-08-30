@@ -46,9 +46,12 @@ namespace pj
         }
         auto operator*(mat m)
         {
-            if (*int_123 > 200)
-            {
-                t = g / pow((*int_123 - 200), rate);
+            if (*int_123 >500)
+            { int n =log10(*int_123);
+                // cout<<n<<"\n"
+                // <<*int_123<<"\n"
+                // <<log(*int_123)<<"\n";
+                t = g / pow(10, n-1);
                 return t * m;
             }
             t = g;
@@ -69,7 +72,7 @@ namespace pj
         {
             W = arma::randn(hid_node_num, row, arma::distr_param(mean, sd));
             a = arma::randn(row, 1, arma::distr_param(mean, sd));
-            b = arma::randn(hid_node_num, 1, arma::distr_param(mean, sd));
+            b = arma::zeros(hid_node_num, 1);
             // W.for_each([](auto & m ){  m=m-.01; });
             // a.for_each([](auto & m ){  m=m-.01; });
             // b.for_each([](auto & m ){  m=m-.01; });
@@ -187,6 +190,16 @@ namespace pj
         // }
     };
 
+    struct state
+    {   weights w;
+        visible_layer vl;
+        gama g;
+        state(string g)
+        {
+            fstream file (g);
+            
+        }
+    };
     // these are small function which take  visible layer as an input and convert it into other matricies that are to be use in
     // the program some where else, their names are pretty self explainatory
 
@@ -218,7 +231,7 @@ namespace pj
         if (std::isnan(a) || std::isinf(a))
         {
             std::cout << "the result was inf/nan" << "\n\n\n";
-            return true;
+            throw std::runtime_error("fuck you ");
         }
         return false;
     }
@@ -234,7 +247,7 @@ namespace pj
         long double cosh_theta = 0;
         mat m = theta_matrix(VL, WEI);
         m.for_each([](auto &m)
-                   { m = log((cosh(activation_function(m)))); });
+                   { m = log((cosh((m)))); });
         for (size_t i = 0; i < hid_node_num; i++)
         {
             cosh_theta = log(2) + cosh_theta + (m(i, 0));
@@ -247,6 +260,7 @@ namespace pj
     long double p_ratio(visible_layer VL, visible_layer VL2, const weights &w)
     {
         // long double a = psi(VL, w), b = psi(VL2, w);
+        // cout<<exp(psi(VL, w) - psi(VL2, w))<<"\n";
         return exp(psi(VL, w) - psi(VL2, w));
     }
 
@@ -270,71 +284,7 @@ namespace pj
     }
 
     // Calculates log(psi(S')) - log(psi(S)) efficiently for a single spin flip at index 'k'
-    long double log_psi_diff(int k, const visible_layer &VL, const weights &w)
-    {
-        const mat &S = VL.S;
-        const mat &W = w.W;
-        const mat &a = w.a;
-        const mat &b = w.b;
 
-        long double delta_log_psi = -2.0 * a(k, 0) * S(k, 0);
-
-        mat theta = w.b + w.W * S; // Original theta
-
-        for (size_t j = 0; j < hid_node_num; ++j)
-        {
-            double theta_j_prime = theta(j, 0) - 2.0 * W(j, k) * S(k, 0);
-            delta_log_psi += log(cosh(activation_function(theta_j_prime))) - log(cosh(activation_function(theta(j, 0))));
-        }
-        return delta_log_psi * beta;
-    }
-
-    long double log_psi_sum(int k, const visible_layer &VL, const weights &w)
-    {
-        const mat &S = VL.S;
-        const mat &W = w.W;
-        const mat &a = w.a;
-        const mat &b = w.b;
-
-        long double delta_log_psi = arma::as_scalar(S.t() * a) - 2.0 * a(k, 0) * S(k, 0);
-
-        mat theta = w.b + w.W * S; // Original theta
-
-        for (size_t j = 0; j < hid_node_num; ++j)
-        {
-            double theta_j_prime = theta(j, 0) - 2.0 * W(j, k) * S(k, 0);
-            delta_log_psi += log(cosh(activation_function(theta_j_prime))) + log(cosh(activation_function(theta(j, 0))));
-        }
-        return delta_log_psi;
-    }
-
-    long double p_ratio_fast(int k_flipped, const visible_layer &VL, const weights &w)
-    {
-        return exp(log_psi_diff(k_flipped, VL, w));
-    }
-
-    long double p_prod(int k_flipped, const visible_layer &vl, const weights &w)
-    {
-        return exp(log_psi_sum(k_flipped, vl, w));
-    }
-
-    // Update E_loc to use this new function
-    long double E_loc_fast(visible_layer VL, const weights &W)
-    {
-        long double e_loc_val = 0;
-        // Term for interactions: J * sum(sig_z(i)*sig_z(i+1))
-        for (size_t i = 0; i < row - 1; i++)
-        {
-            e_loc_val += -J * VL.S(i, 0) * VL.S((i + 1) % row, 0);
-        }
-
-        // Term for transverse field: H * sum(sig_x)
-        for (size_t i = 0; i < row; i++)
-        {
-            e_loc_val += -H * p_ratio_fast(i, VL, W);
-        }
-        return e_loc_val;
-    }
 
     long double E_loc(visible_layer VL, const weights &W)
     {
@@ -344,9 +294,18 @@ namespace pj
         visible_layer m = VL;
         for (size_t i = 0; i < row; i++)
         {
+            // m.flip(i);
+            E_loc += -J * VL.S(i%row, 0) * VL.S((i + 1)%row,0);// - H * p_ratio(m, VL, W);
+            // m = VL;
+        }
+        for (size_t i = 0; i < row; i++)
+        {
+            // int s = m.to_int();
             m.flip(i);
-            E_loc += -J * VL.S(i % row, 0) * VL.S((i + 1) % row) - H * p_ratio(m, VL, W);
-            m = VL;
+            // if(m.to_int()==s)
+            // throw std::runtime_error("shit happened");
+            E_loc += -H * p_ratio(m, VL, W);
+            m=VL;
         }
 
         // m.flip(row - 1);
@@ -453,41 +412,41 @@ namespace pj
         // static int n = 1;
         double value = E_loc_avg(vl, wei);
         weights w = wei, w2 = wei;
-        if ((check_mulitple_vales_of_update) &&
-            (n > check_mulitple_vales_of_update_after))
-        {
-            for (size_t t = 0; t < no_of_mulitple_vales_of_update; t++)
-            {
-                vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_vector;
-                for (size_t i = 0; i < 3; i++)
-                {
-                    sampler_vector.push_back(sampler_mp);
-                }
+        // if ((check_mulitple_vales_of_update) &&
+        //     (n > check_mulitple_vales_of_update_after))
+        // {
+        //     for (size_t t = 0; t < no_of_mulitple_vales_of_update; t++)
+        //     {
+        //         vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_vector;
+        //         for (size_t i = 0; i < 3; i++)
+        //         {
+        //             sampler_vector.push_back(sampler_mp);
+        //         }
 
-                vector<function<mat(const visible_layer, const weights &)>> matrix_maker;
-                matrix_maker.push_back(vis_cross_tanh);
-                matrix_maker.push_back(identity_vis_lay);
-                matrix_maker.push_back(tanh_matrix);
+        //         vector<function<mat(const visible_layer, const weights &)>> matrix_maker;
+        //         matrix_maker.push_back(vis_cross_tanh);
+        //         matrix_maker.push_back(identity_vis_lay);
+        //         matrix_maker.push_back(tanh_matrix);
 
-                static gama g(gama_init_value, &n);
+        //         static gama g(gama_init_value, &n);
 
-                vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
+        //         vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
 
-                (w.W) -= g * W_update[0];
-                (w.a) -= g * W_update[1] * pow(10, -2);
-                (w.b) -= g * W_update[2] * pow(10, -2);
-                double a = E_loc_avg(vl, w);
-                if (a < value)
-                {
-                    w2 = w;
-                    value = a;
-                }
-                w = wei;
-            }
-            return w2;
-        }
-        else
-        {
+        //         (w.W) -= g * W_update[0];
+        //         (w.a) -= g * W_update[1] * pow(10, -2);
+        //         (w.b) -= g * W_update[2] * pow(10, -2);
+        //         double a = E_loc_avg(vl, w);
+        //         if (a < value)
+        //         {
+        //             w2 = w;
+        //             value = a;
+        //         }
+        //         w = wei;
+        //     }
+        //     return w2;
+        // }
+        // else
+        // {
             vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_vector;
             for (size_t i = 0; i < 3; i++)
             {
@@ -503,11 +462,11 @@ namespace pj
 
             vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
 
-            (w.W) -= g * W_update[0] ;
-            (w.a) -= g * W_update[1] ;
-            (w.b) -= g * W_update[2] * pow(10, -3);
+            (w.W) -= g * W_update[0]/arma::norm(W_update[0]) ;
+            (w.a) -= g * W_update[1]/arma::norm(W_update[1]) ;
+            (w.b) -= g * W_update[2]/arma::norm(W_update[2]) ;
             return w;
-        }
+        // }
     }
 
     double W_update(visible_layer &vl, weights &w)
@@ -517,10 +476,11 @@ namespace pj
 
         gama g(gama_init_value, &n);
         n++;
-        if (n % 100 == 0)
-        {
-            (beta<1)?(beta+=.1):(beta=1);
-        }
+        // if (n % 500 == 0)
+        // {
+        //     // (beta<1)?(beta+=.1):(beta=1);
+        // beta =2;
+        // }
 
         return g.out();
     }

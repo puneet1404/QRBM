@@ -10,15 +10,17 @@ namespace pj
         visible_layer *vl = nullptr;
         weights *w = nullptr;
         double Z = 0;
-        magnetization(visible_layer *VL, weights *W)
+        function<visible_layer(const visible_layer, const weights &, std::random_device &)> sampler;
+        magnetization(visible_layer *VL, weights *W, function<visible_layer(const visible_layer, const weights &, std::random_device &)> sampler_in)
         {
+            sampler = sampler_in;
             vl = VL;
             w = W;
         }
-        double calc_z(function<visible_layer(const visible_layer, const weights &, std::random_device &)> sampler)
+        double calc_z()
         {
             // static weights check_w;
-            // cout<<!check_w.are_equal(*w)<<endl; 
+            // cout<<!check_w.are_equal(*w)<<endl;
             // if (!check_w.are_equal(*w))
             {
                 Z = 0;
@@ -39,7 +41,7 @@ namespace pj
 
             return Z;
         }
-        double mag_x(visible_layer vis_lay,function<visible_layer(const visible_layer, const weights &, std::random_device &)> sampler, double z = 0)
+        double mag_x(visible_layer vis_lay, double z = 0)
         {
             // if (z = 0)
             // z = calc_z(sampler);
@@ -47,24 +49,53 @@ namespace pj
             visible_layer vl_m = vis_lay;
             for (size_t i = 0; i < row; i++)
             {
+                int n = vl_m.to_int();
                 vl_m.flip(i);
-                // m_x += psi(*vl, *w) * psi(vl_m, *w) / (z * z);
-                m_x+=p_ratio_fast(i,*vl,*w);
+                if (vl_m.to_int() == n)
+                    throw std::runtime_error("flipping not happening ");
+                m_x += p_ratio(vl_m, *vl, *w);
                 vl_m.flip(i);
             }
             return m_x;
         }
-        double mag_x_avg(function<visible_layer(const visible_layer, const weights &, std::random_device &)> sampler)
+        double mag_part_x(int part_no = 5)
         {
-            calc_z(sampler);
+            double mag_cal = 0;
+            visible_layer vl_f = *vl, vl_i=*vl;
+
+            for (int n = row * 2 / part_no; n < row * 3 / part_no; n++)
+            {
+                vl_f.flip(n);
+
+                mag_cal += p_ratio(vl_f, vl_i, *w);
+
+                vl_f.flip(n);
+            }
+            return mag_cal;
+        }
+        double mag_x_avg()
+        {
+            calc_z();
             double mag_x_av = 0;
-            visible_layer vis_lay=*vl;
+            // visible_layer vis_lay = *vl;
             for (size_t i = 0; i < itt_value; i++)
             {
-                mag_x_av += mag_x(vis_lay,sampler, Z);
-                vis_lay=sampler(vis_lay,*w,rd);
+                mag_x_av += mag_x(*vl, Z);
+                *vl = sampler(*vl, *w, rd);
             }
-            mag_x_av /= itt_value;
+            mag_x_av = mag_x_av / itt_value;
+            return mag_x_av;
+        }
+        double mag_part_x_avg()
+        {
+            double mag_x_av = 0;
+            // visible_layer vis_lay = *vl;
+            for (size_t i = 0; i < itt_value; i++)
+            {
+                mag_x_av += mag_part_x();
+                *vl = sampler(*vl, *w, rd);
+            }
+            mag_x_av = mag_x_av / itt_value;
             return mag_x_av;
         }
     };

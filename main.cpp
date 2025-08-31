@@ -128,7 +128,7 @@ void print_info(pj::weights W, pj::magnetization mag, int gama, double g, vector
 {
 	cout << "---------------------------------------------------------\n";
 	double avg = avg_cal(e_loc_avg, pj::run_avg_win);
-	// long double mag_avg = mag.mag_x_avg(pj::sampler_mp);
+	long double mag_avg =avg_cal(magnetization,2*pj::run_avg_win);
 
 	cout << "e loc avg per site is  =" << avg << "\n"
 		 << "e loc value per site is =" << avg_cal(e_loc, pj::run_avg_win) << "\n"
@@ -139,7 +139,7 @@ void print_info(pj::weights W, pj::magnetization mag, int gama, double g, vector
 
 		 << "and their difference is = " << (avg - min_eigen_value() / ((pj::exact_cal_bool) ? (pj::row) : (1))) << "\n"
 		 << "the percentage error is = " << abs((avg - min_eigen_value() / ((pj::exact_cal_bool) ? (pj::row) : (1))) * 100 / (avg)) << "%\n"
-		 << "magnetization in z direction (calc) = " << mag.mag_x_avg() << "\n"
+		 << "magnetization in z direction (calc) = " << mag_avg << "\n"
 		 //  << "magnetization in z direction (" << ((pj::exact_cal_bool) ? ("exact") : ("prev"))
 		 //  << ")= " << mag_calc() << "\n"
 		 //  << "error in magnetization is =" << (mag_calc() - mag_avg) << "\n"
@@ -194,7 +194,7 @@ int main()
 	try
 	{
 
-		for (size_t j = 0; j < 100; j++)
+		for (size_t j = 0; j < 1000; j++)
 		{
 			for (size_t i = 0; i < 100; i++)
 			{
@@ -206,7 +206,7 @@ int main()
 				e_loc_avg.push_back((pj::E_loc_avg(VL, W)) / pj::row);
 				e_loc.push_back(avg_cal(e_loc_avg, pj::run_avg_win));
 				n.push_back(gama);
-				magnetization.push_back(mag.mag_x_avg()/(pj::row*0.2));
+				magnetization.push_back(mag.mag_x_avg()/(pj::row));
 				mag_partition.push_back(mag.mag_part_x_avg()/(pj::row*0.2));
 				mag_av.push_back(avg_cal(magnetization, pj::run_avg_win));
 				mag_pat_av.push_back(avg_cal(mag_partition, pj::run_avg_win));

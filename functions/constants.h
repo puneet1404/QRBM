@@ -9,7 +9,7 @@ namespace pj
 {
     // spin lattice properties
     const int col = 1;
-    const int row = 10;
+    const int row = 20;
     // interaction variables
     const long double H = 1;
     const long double J = 1;
@@ -22,7 +22,7 @@ namespace pj
     const double gama_decrement_exponent = 1;
     const double mean = 0; // mean for initial random variable
     const double sd = 0.001; // sd fro normal distribution of initial variable
-    const double itt_value =1000;
+    const double itt_value =6000;
     const bool multi_check = false;
     const bool check_mulitple_vales_of_update = false;
     const int check_mulitple_vales_of_update_after = 5000;

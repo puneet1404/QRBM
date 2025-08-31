@@ -46,7 +46,7 @@ namespace pj
         }
         auto operator*(mat m)
         {
-            if (*int_123 >500)
+            if (*int_123 >50)
             { int n =log10(*int_123);
                 // cout<<n<<"\n"
                 // <<*int_123<<"\n"
@@ -474,12 +474,12 @@ namespace pj
         static int n = 1;
         w = W_update_chooser(vl, w, n);
 
-        gama g(gama_init_value, &n);
+        static gama g(gama_init_value, &n);
         n++;
-        // if (n % 500 == 0)
+        // if (n % 50 == 0)
         // {
-        //     // (beta<1)?(beta+=.1):(beta=1);
-        // beta =2;
+        //     (beta<1)?(beta+=.1):(beta=1);
+        // // beta =2;
         // }
 
         return g.out();

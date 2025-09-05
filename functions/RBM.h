@@ -18,17 +18,19 @@ RBM
 there will exist a struct of wieghts W and then this struct of wieghts will
 we used to calculate the psi(s)*/
 using namespace std;
+using namespace std::complex_literals;
 namespace pj
 {
     // namespace g = GiNaC;
     // typedef g::long long;
-    typedef arma::cx_mat cmat;
-    typedef arma::Mat<double> mat;
+    typedef arma::cx_mat mat;
+    typedef arma::Mat<double> dmat;
     typedef std::complex<double> dclx;
-    typedef std::vector<std::reference_wrapper<mat>> vec_p;
+    // typedef std::complex_literals::il
+        // typedef std::complex_literals::1i img;
+        // typedef std::vector<std::reference_wrapper<mat>> vec_p;
 
-    std::random_device rd;
-
+        std::random_device rd;
     struct gama
     {
         long double g = 0;
@@ -46,14 +48,21 @@ namespace pj
         }
         auto operator*(mat m)
         {
-            if (*int_123 >50)
-            { int n =log10(*int_123);
+            if (*int_123 > 100)
+            {
+                int n = log10(*int_123);
                 // cout<<n<<"\n"
                 // <<*int_123<<"\n"
                 // <<log(*int_123)<<"\n";
-                t = g / pow(10, n-1);
+                t = g ;// pow(4, n - 1);
                 return t * m;
             }
+            // if (*int_123 > 100)
+            // {
+            //     int n = log10(*int_123), q = *int_123 / pow(10, n);
+            //     t = g * (10- q )/ pow(10, n - 1);
+            //     return t * m;
+            // }
             t = g;
             return t * m;
         }
@@ -70,9 +79,9 @@ namespace pj
         mat b;
         weights()
         {
-            W = arma::randn(hid_node_num, row, arma::distr_param(mean, sd));
-            a = arma::randn(row, 1, arma::distr_param(mean, sd));
-            b = arma::zeros(hid_node_num, 1);
+            W = arma::randn(hid_node_num, row, arma::distr_param(mean, sd))+1i*arma::randn(hid_node_num, row, arma::distr_param(mean, sd));
+            a = arma::randn(row, 1, arma::distr_param(mean, sd))+1i*arma::randn(row, 1, arma::distr_param(mean, sd));
+            b = arma::zeros(hid_node_num, 1)+1i*arma::zeros(hid_node_num,1);
             // W.for_each([](auto & m ){  m=m-.01; });
             // a.for_each([](auto & m ){  m=m-.01; });
             // b.for_each([](auto & m ){  m=m-.01; });
@@ -122,26 +131,26 @@ namespace pj
             a = a / arma::norm(a);
             b = b / arma::norm(b);
         }
-        void shake()
-        {
-            W += 0.01 * (arma::randu(hid_node_num, row));
-            a += 0.01 * (arma::randu(row, 1));
-            b += 0.01 * (arma::randu(hid_node_num, 1));
-        }
-        void shake(gama g)
-        {
-            W += g * (arma::randu(hid_node_num, row));
-            a += g * (arma::randu(row, 1));
-            b += g * (arma::randu(hid_node_num, 1));
-        }
+        // void shake()
+        // {
+        //     W += 0.01 * (arma::randu(hid_node_num, row));
+        //     a += 0.01 * (arma::randu(row, 1));
+        //     b += 0.01 * (arma::randu(hid_node_num, 1));
+        // }
+        // void shake(gama g)
+        // {
+        //     W += g * (arma::randu(hid_node_num, row));
+        //     a += g * (arma::randu(row, 1));
+        //     b += g * (arma::randu(hid_node_num, 1));
+        // }
     };
 
     struct visible_layer
     {
-        mat S = arma::randu(row, 1);
+        dmat S = arma::randu(row, 1);
         visible_layer()
         {
-            S.for_each([](mat::elem_type &m)
+            S.for_each([](dmat::elem_type &m)
                        { (m > 0.5) ? (m = -1) : (m = 1); });
         }
         void flip(int i)
@@ -191,13 +200,13 @@ namespace pj
     };
 
     struct state
-    {   weights w;
+    {
+        weights w;
         visible_layer vl;
         gama g;
         state(string g)
         {
-            fstream file (g);
-            
+            fstream file(g);
         }
     };
     // these are small function which take  visible layer as an input and convert it into other matricies that are to be use in
@@ -218,7 +227,7 @@ namespace pj
     }
     mat identity_vis_lay(visible_layer vl, const weights &w)
     {
-        return vl.S.t();
+        return vl.S.t()+1i*arma::zeros(arma::size(vl.S.t()));
     }
     mat vis_cross_tanh(visible_layer vl, const weights &w)
     {
@@ -236,15 +245,15 @@ namespace pj
         return false;
     }
 
-    long double psi(visible_layer VL, const weights &WEI) // to calculate the probability psi(s) for a given weights and visible layers
+    dclx psi(visible_layer VL, const weights &WEI) // to calculate the probability psi(s) for a given weights and visible layers
     {
-        long double psi = 0; // initialization of psi
+        dclx psi = 0; // initialization of psi
 
         // sigmai* a(i) implimnetation
-        long double sig_i_a_i = 0;
+        dclx sig_i_a_i = 0;
         sig_i_a_i = arma::accu(VL.S.t() * WEI.a);
 
-        long double cosh_theta = 0;
+        dclx cosh_theta = 0;
         mat m = theta_matrix(VL, WEI);
         m.for_each([](auto &m)
                    { m = log((cosh((m)))); });
@@ -253,11 +262,11 @@ namespace pj
             cosh_theta = log(2) + cosh_theta + (m(i, 0));
         }
         psi = (cosh_theta) + (sig_i_a_i);
-        inf_check(psi);
+        // inf_check(psi);
         return (psi * beta);
     }
 
-    long double p_ratio(visible_layer VL, visible_layer VL2, const weights &w)
+    dclx p_ratio(visible_layer VL, visible_layer VL2, const weights &w)
     {
         // long double a = psi(VL, w), b = psi(VL2, w);
         // cout<<exp(psi(VL, w) - psi(VL2, w))<<"\n";
@@ -270,7 +279,7 @@ namespace pj
         std::uniform_real_distribution<long double> realdist(0, 1);
         visible_layer vl = VL;
         vl.flip(dist(rd));
-        if ((pow(p_ratio(vl, VL, w), 2) > realdist(rd)) || p_ratio(vl, VL, w) > 1)
+        if ((pow(norm(p_ratio(vl, VL, w)), 2) > realdist(rd)) || norm(p_ratio(vl, VL, w)) > 1)
             return vl;
         return VL;
     }
@@ -285,17 +294,16 @@ namespace pj
 
     // Calculates log(psi(S')) - log(psi(S)) efficiently for a single spin flip at index 'k'
 
-
     long double E_loc(visible_layer VL, const weights &W)
     {
 
         // the hamiltonian is h*sum(sig_x)+ j*sum(sig_z(i)*sig_z(i+1))
         long double E_loc = 0;
         visible_layer m = VL;
-        for (size_t i = 0; i < row; i++)
+        for (size_t i = 0; i < row - 1; i++)
         {
             // m.flip(i);
-            E_loc += -J * VL.S(i%row, 0) * VL.S((i + 1)%row,0);// - H * p_ratio(m, VL, W);
+            E_loc += -J * VL.S(i % row, 0) * VL.S((i + 1) % row, 0); // - H * p_ratio(m, VL, W);
             // m = VL;
         }
         for (size_t i = 0; i < row; i++)
@@ -304,8 +312,8 @@ namespace pj
             m.flip(i);
             // if(m.to_int()==s)
             // throw std::runtime_error("shit happened");
-            E_loc += -H * p_ratio(m, VL, W);
-            m=VL;
+            E_loc += -H * norm(p_ratio(m, VL, W));
+            m = VL;
         }
 
         // m.flip(row - 1);
@@ -379,12 +387,8 @@ namespace pj
         eye_num.push_back(hid_node_num);
 
         vector<mat> O, OT_O, OT, E_OT,
-            S, F, a_n, i, m; // = arma::eye(eye_num, eye_num);
+            S, F, a_n, m; // = arma::eye(eye_num, eye_num);
 
-        for (size_t j = 0; j < 3; j++)
-        {
-            i.push_back(arma::eye(eye_num[j], eye_num[j]));
-        }
 
         static long double lamda = pow(10, 2), a = 100;
         a = a * 0.9;
@@ -447,25 +451,25 @@ namespace pj
         // }
         // else
         // {
-            vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_vector;
-            for (size_t i = 0; i < 3; i++)
-            {
-                sampler_vector.push_back(sampler_mp);
-            }
+        vector<function<visible_layer(const visible_layer, const weights &, std::random_device &)>> sampler_vector;
+        for (size_t i = 0; i < 3; i++)
+        {
+            sampler_vector.push_back(sampler_mp);
+        }
 
-            vector<function<mat(const visible_layer, const weights &)>> matrix_maker;
-            matrix_maker.push_back(vis_cross_tanh);
-            matrix_maker.push_back(identity_vis_lay);
-            matrix_maker.push_back(tanh_matrix);
+        vector<function<mat(const visible_layer, const weights &)>> matrix_maker;
+        matrix_maker.push_back(vis_cross_tanh);
+        matrix_maker.push_back(identity_vis_lay);
+        matrix_maker.push_back(tanh_matrix);
 
-            static gama g(gama_init_value, &n);
+        static gama g(gama_init_value, &n);
 
-            vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
+        vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
 
-            (w.W) -= g * W_update[0]/arma::norm(W_update[0]) ;
-            (w.a) -= g * W_update[1]/arma::norm(W_update[1]) ;
-            (w.b) -= g * W_update[2]/arma::norm(W_update[2]) ;
-            return w;
+        (w.W) -= g * W_update[0] / arma::norm(W_update[0]);
+        (w.a) -= g * W_update[1] / arma::norm(W_update[1]);
+        (w.b) -= g * W_update[2] / arma::norm(W_update[2]);
+        return w;
         // }
     }
 

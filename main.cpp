@@ -182,6 +182,7 @@ int main()
 	// cout /*<< "minimum eigen values are :\n"*/
 	//  << matrix.min_eig_value() << "\n";
 
+	cout<<mag_calc();
 	pj::visible_layer VL;
 	pj::weights W;
 	pj::magnetization mag(&VL, &W, pj::sampler_mp);

@@ -17,30 +17,6 @@ namespace pj
             vl = VL;
             w = W;
         }
-        double calc_z()
-        {
-            // static weights check_w;
-            // cout<<!check_w.are_equal(*w)<<endl;
-            // if (!check_w.are_equal(*w))
-            {
-                Z = 0;
-                set<unsigned long int> hash;
-                visible_layer VL = *vl;
-                for (size_t i = 0; i < itt_value; i++)
-                {
-                    hash.insert(VL.to_int());
-                    VL = sampler(VL, *w, pj::rd);
-                }
-                for (auto i = hash.begin(); i != hash.end(); i++)
-                {
-                    VL.to_S(*i);
-                    Z += psi(VL, *w);
-                }
-                // check_w=*w;
-            }
-
-            return Z;
-        }
         double mag_x(visible_layer vis_lay, double z = 0)
         {
             // if (z = 0)
@@ -53,7 +29,7 @@ namespace pj
                 vl_m.flip(i);
                 if (vl_m.to_int() == n)
                     throw std::runtime_error("flipping not happening ");
-                m_x += p_ratio(vl_m, *vl, *w);
+                m_x += norm(p_ratio(vl_m, *vl, *w));
                 vl_m.flip(i);
             }
             return m_x;
@@ -67,7 +43,7 @@ namespace pj
             {
                 vl_f.flip(n);
 
-                mag_cal += p_ratio(vl_f, vl_i, *w);
+                mag_cal += norm(p_ratio(vl_f, vl_i, *w));
 
                 vl_f.flip(n);
             }
@@ -75,7 +51,7 @@ namespace pj
         }
         double mag_x_avg()
         {
-            calc_z();
+            // calc_z();
             double mag_x_av = 0;
             // visible_layer vis_lay = *vl;
             for (size_t i = 0; i < itt_value; i++)

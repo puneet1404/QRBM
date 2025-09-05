@@ -229,11 +229,11 @@ arma::cx_mat hamiltoian_matrix::magnetization_calc()
 arma::cx_dmat hamiltoian_matrix::calc_hamiltonian()
 {
 	arma::cx_dmat hamiltonian = arma::zeros<arma::cx_dmat>(pow(dim,num),pow(dim,num));
-	for (size_t i = 0; i < num; i++)
+	for (size_t i = 0; i < num-1; i++)
 	{
 		hamiltonian += -J*Z[i%num]*Z[(i+1)%num] - H* X[i];
 	}
-    // hamiltonian+= -H*X[num-1];
+    hamiltonian+= -H*X[num-1];
 	return hamiltonian;
 }
 

@@ -9,20 +9,20 @@ namespace pj
 {
     // spin lattice properties
     const int col = 1;
-    const int row = 20;
+    const int row = 10;
     // interaction variables
-    const long double H = 1;
+    const long double H = 0.5;
     const long double J = 1;
     // neural network parameters
     const int alpha = 2;
     const int hid_node_num = alpha * row;
 
     // training parameters
-    const double gama_init_value = .1;
+    const double gama_init_value = 0.01;
     const double gama_decrement_exponent = 1;
     const double mean = 0; // mean for initial random variable
     const double sd = 0.001; // sd fro normal distribution of initial variable
-    const double itt_value =6000;
+    const double itt_value =1000;
     const bool multi_check = false;
     const bool check_mulitple_vales_of_update = false;
     const int check_mulitple_vales_of_update_after = 5000;
@@ -46,7 +46,7 @@ namespace pj
 
     // running average window
     const int run_avg_win = 50;
-    const int plot_interval = 50;
+    const int plot_interval = 100;
 
     // compute exact results or not
 

@@ -50,16 +50,30 @@ namespace pj
         }
         mat operator*(mat m)
         {
-            if (true)
-            {
-                double a = pow(*int_123,-rate);
-                t = (t< pow(10, -4)) ? (pow(10, -4)) : g * a;
-            }
-            return ((t)*m);
+            // if ( g<.01)
+            // {
+
+            //     if (*int_123%1000==0)
+            //     g=g+0.001;
+            //     // return ((g+0.001)*m);
+                
+            //     // if (*int_123 > 600)
+            //     //     return (g * m) / pow(10, 3);
+                
+            //     // if (*int_123 > 400)
+            //     //     return (g * m) / pow(10, 2);
+                
+            //     // if (*int_123 > 100)
+            //     //     return (g * m) / pow(10, 2); // pow(10, 1);
+            //     cout<<"\ng\t\t="<<g<<endl;
+            // }
+            g*= pow(rate,1.0/3000.0);
+            cout<<g<<endl;
+            return ((g)*m);
         }
         double out()
         {
-            return t; // pow(10, int(log10(*int_123)) - 1);
+            return g; // pow(10, int(log10(*int_123)) - 1);
         }
     };
 
@@ -70,9 +84,9 @@ namespace pj
         mat b;
         weights()
         {
-            W = arma::randn(hid_node_num, row, arma::distr_param(mean, sd)) + 1i * (arma::randn(hid_node_num, row, arma::distr_param(mean, sd)));
-            a = arma::randn(row, 1, arma::distr_param(mean, sd)) + 1i * arma::randn(row, 1, arma::distr_param(mean, sd));
-            b = arma::randn(hid_node_num, 1, arma::distr_param(mean, sd)) + 1i * (arma::randn(hid_node_num, 1, arma::distr_param(mean, sd)));
+            W = arma::randn(hid_node_num, row, arma::distr_param(mean, sd)) + 1i * ((pj::H >= 2) ? (arma::zeros(hid_node_num, row)) : (arma::randn(hid_node_num, row, arma::distr_param(mean, sd))));
+            a = arma::randn(row, 1, arma::distr_param(mean, sd)) + 1i * ((pj::H >= 1) ? (arma::zeros(row, 1)) : (arma::randn(row, 1, arma::distr_param(mean, sd))));
+            b = arma::randn(hid_node_num, 1, arma::distr_param(mean, sd)) + 1i * ((pj::H >= 2) ? (arma::zeros(hid_node_num, 1)) : (arma::randn(hid_node_num, 1, arma::distr_param(mean, sd))));
         }
         void operator/(double n)
         {
@@ -193,15 +207,15 @@ namespace pj
     }
     mat tanh_matrix(const visible_layer &vl, const weights &w)
     {
-        return arma::tanh(theta_matrix(vl, w)).t();
+        return   arma::tanh(theta_matrix(vl, w)).t();
     }
     mat identity_vis_lay(visible_layer vl, const weights &w)
     {
-        return vl.S.t() + 1i * arma::zeros(arma::size(vl.S.t()));
+        return   vl.S.t() + 1i * arma::zeros(arma::size(vl.S.t()));
     }
     mat vis_cross_tanh(visible_layer vl, const weights &w)
     {
-        return (vl.S * tanh_matrix(vl, w));
+        return (  vl.S * tanh_matrix(vl, w));
     }
 
     // this functions checks for invalid numbers taht might creep up in the program
@@ -210,7 +224,7 @@ namespace pj
         if (std::isnan(a) || std::isinf(a))
         {
             std::cout << "the result was inf/nan" << "\n\n\n";
-            throw std::runtime_error("invalid number was detected in the code  ");
+            throw std::runtime_error("fuck you ");
         }
         return false;
     }
@@ -221,14 +235,14 @@ namespace pj
 
         // sigmai* a(i) implimnetation
         dclx sig_i_a_i = 0;
-        sig_i_a_i = (arma::accu(VL.S.t() * WEI.a));
+        sig_i_a_i = arma::accu(VL.S.t() * WEI.a);
 
         dclx cosh_theta = 0;
         mat m = theta_matrix(VL, WEI);
         // m.for_each([](auto &m)
         //            { m = log((cosh((m)))); });
-        m = arma::log(2 * arma::cosh(m));
-        cosh_theta = arma::accu(m);
+        m =arma::log(2*arma::cosh(m));
+        cosh_theta =arma::accu(m);
         // for (size_t i = 0; i < hid_node_num; i++)
         // {
         //     cosh_theta = log(2) + cosh_theta + (m(i, 0));
@@ -236,29 +250,32 @@ namespace pj
         psi = (cosh_theta) + (sig_i_a_i);
         inf_check(psi.real());
         inf_check(psi.imag());
-        return (psi);
+        return (psi  );
     }
 
     dclx p_ratio(visible_layer VL, visible_layer VL2, const weights &w)
     {
         return exp(psi(VL, w) - psi(VL2, w));
     }
-    dclx p_ratio(const int n, const visible_layer &vl, const weights &w)
+    dclx p_ratio(const int n , const visible_layer &vl, const weights& w)
     {
-        visible_layer m = vl;
+        visible_layer m =vl;
         m.flip(n);
-        return p_ratio(m, vl, w);
+        return p_ratio(m,vl,w);
+        
     }
     visible_layer sampler_mp(visible_layer VL, const weights &w, std::mt19937_64 &rd = pj::rd)
     {
         std::uniform_int_distribution<int> dist(0, VL.S.n_rows - 1);
         std::uniform_real_distribution<long double> realdist(0, 1);
         visible_layer vl = VL;
-        vl.flip(dist(rd) % row);
-        double r = norm( p_ratio(vl, VL, w)); 
-        
-        if (r > 1 || r >realdist(rd))
-            return vl;
+        // for (size_t i = 0; i < spin_flip_num; i++)
+        // {
+        vl.flip(dist(rd));
+        // }
+        // cout<<vl.S<<"\n";
+        if ( norm(p_ratio(vl, VL, w)) > 1||(pow(abs(p_ratio(vl, VL, w)), 2) > realdist(rd)))
+            VL = vl;
 
         return VL;
     }
@@ -268,67 +285,48 @@ namespace pj
         std::uniform_int_distribution<int> dist(0, VL.S.n_rows - 1);
         visible_layer vl = VL;
         vl.flip(dist(rd));
-        return vl;
+        return VL;
     }
 
     // Calculates log(psi(S')) - log(psi(S)) efficiently for a single spin flip at index 'k'
 
-    dclx E_loc(visible_layer vl, const weights &W)
+    long double E_loc(visible_layer vl, const weights &W)
     {
 
         // the hamiltonian is h*sum(sig_x)+ j*sum(sig_z(i)*sig_z(i+1))
-        dclx E_loc = 0;
+        long double E_loc = 0;
         visible_layer m = vl;
         for (size_t i = 0; i < row; i++)
         {
-            E_loc += -J * vl.S(i % row, 0) * vl.S((i + 1) % row, 0); // - H * p_ratio(m, vl, W);
+            E_loc += -J * vl.S(i%row)*vl.S((i+1)%row); // - H * p_ratio(m, vl, W);
         }
         for (size_t i = 0; i < row; i++)
         {
             m.flip(i);
-            E_loc += -H * (p_ratio(m, vl, W));
+            E_loc += -H * real(p_ratio(m, vl, W));
             m = vl;
         }
         // E_loc += -H*arma::accu(vl.S);
         return E_loc;
     }
 
-    double E_loc_avg(const visible_layer VL, const weights &W, int itt_no = itt_value, std::mt19937_64 &rd = pj::rd)
+    long double E_loc_avg(const visible_layer VL, const weights &W, int itt_no = itt_value, std::mt19937_64 &rd = pj::rd)
     {
         uniform_real_distribution<double> realdist(0, 1);
-        double e_loc = 0;
+        long double e_loc = 0;
         visible_layer vl2 = VL, vl3 = vl2;
         int a = 50;
         int n = itt_no / a;
         for (size_t i = 0; i < a; i++)
         {
-            for (size_t j = 0; j < n; j++)
+            for (size_t i = 0; i < n; i++)
             {
                 vl2 = sampler_mp(vl2, W);
-                e_loc += real(E_loc(vl2, W));
+                e_loc += E_loc(vl2, W);
             }
         }
 
-        return e_loc / static_cast<double>(n * a);
-    }
-
-    dclx E_loc_avg_C(const visible_layer VL, const weights &W, int itt_no = itt_value, std::mt19937_64 &rd = pj::rd)
-    {
-        uniform_real_distribution<double> realdist(0, 1);
-        dclx e_loc = 0;
-        visible_layer vl2 = VL, vl3 = vl2;
-        int a = 50;
-        int n = itt_no / a;
-        for (size_t i = 0; i < a; i++)
-        {
-            for (size_t j = 0; j < n; j++)
-            {
-                vl2 = sampler_mp(vl2, W);
-                e_loc += (E_loc(vl2, W));
-            }
-        }
-
-        return e_loc / static_cast<double>(n * a);
+        return e_loc / (n * a);
     }
 
     void O_init(vector<mat> &O, vector<mat> &OT, vector<mat> &OT_O, vector<mat> &E_OT, const visible_layer &vl, const weights &w,
@@ -338,11 +336,11 @@ namespace pj
         visible_layer vl2 = vl;
         for (size_t j = 0; j < 3; j++)
         {
-            O.push_back(matrix_maker[j](vl2, w));
-            OT.push_back(matrix_maker[j](vl2, w).t());
-            OT_O.push_back(matrix_maker[j](vl2, w).t() *
-                           matrix_maker[j](vl2, w));
-            E_OT.push_back((E_loc(vl2, w)) * matrix_maker[j](vl2, w).t());
+            O.push_back(matrix_maker[j](sampler_function[j](vl2, w, rd), w));
+            OT.push_back(matrix_maker[j](sampler_function[j](vl2, w, rd), w).t());
+            OT_O.push_back(matrix_maker[j](sampler_function[j](vl2, w, rd), w).t() *
+                           matrix_maker[j](sampler_function[j](vl2, w, rd), w));
+            E_OT.push_back((E_loc(vl2, w)) * matrix_maker[j](sampler_function[j](vl2, w, rd), w).t());
         }
     }
 
@@ -350,18 +348,18 @@ namespace pj
                   function<visible_layer(const visible_layer, const weights &, std::mt19937_64 &)> sampler_function, int N = itt_value)
     {
         vl = sampler_function(vl, w, rd);
-        O += matrix_maker(vl, w);
-        OT += matrix_maker(vl, w).t();
-        OT_O += matrix_maker(vl, w).t() *
-                matrix_maker(vl, w);
-        E_OT += (E_loc(vl, w)) * matrix_maker(vl, w).t();
+        O += matrix_maker(sampler_function(vl, w, rd), w);
+        OT += matrix_maker(sampler_function(vl, w, rd), w).t();
+        OT_O += matrix_maker(sampler_function(vl, w, rd), w).t() *
+                matrix_maker(sampler_function(vl, w, rd), w);
+        E_OT += (E_loc(sampler_function(vl, w, rd), w)) * matrix_maker(sampler_function(vl, w, rd), w).t();
     }
 
     void O_averager(vector<mat> &O, vector<mat> &OT, vector<mat> &OT_O, vector<mat> &E_OT, visible_layer &vl, const weights &w,
                     vector<function<mat(const visible_layer, const weights &)>> matrix_maker,
                     vector<function<visible_layer(const visible_layer, const weights &, std::mt19937_64 &)>> sampler_function, int N = itt_value)
     {
-        for (size_t j = 0; j < N-1; j++)
+        for (size_t j = 0; j < N; j++)
         {
             for (size_t i = 0; i < 3; i++)
             {
@@ -388,34 +386,36 @@ namespace pj
         O_init(O, OT, OT_O, E_OT, vl, w, matrix_maker, sampler_function);
         O_averager(O, OT, OT_O, E_OT, vl, w, matrix_maker, sampler_function);
 
-        double e_loc = E_loc_avg(vl, w);
+        long double e_loc = E_loc_avg(vl, w);
 
         for (size_t j = 0; j < 3; j++)
         {
-            S.push_back((OT_O[j] / (N)) - ((OT[j] * O[j] / pow(N, 2))));
+            S.push_back((OT_O[j] / N) - ((OT[j] * O[j] / pow(N, 2))));
             S[j] = S[j] + lamda * arma::diagmat(S[j]);
             // S = S + lamda * i;
-            F.push_back((E_OT[j] / (N)) - (e_loc)*OT[j] / (N));
+            F.push_back((E_OT[j] / N) - (e_loc)*OT[j] / N);
             m.push_back((arma::pinv(S[j])) * F[j]);
         }
         // double max_norm = 0;
         for (size_t i = 0; i < 3; i++)
         {
-            if (arma::norm(m[i],2) == 0)
+            if (arma::norm(m[i]) == 0)
             {
                 continue;
             }
             else
             {
-                m[i] /= arma::norm(m[i],2);
+
+                m[i]/=arma::norm(m[i]);
             }
         }
         return m;
     }
 
-    weights W_update_chooser(visible_layer &vl, const weights &wei, gama &g)
+    weights W_update_chooser(visible_layer &vl, const weights &wei, int &n)
     {
         // static int n = 1;
+        double value = E_loc_avg(vl, wei);
         weights w = wei, w2 = wei;
         vector<function<visible_layer(const visible_layer, const weights &, std::mt19937_64 &)>> sampler_vector;
         for (size_t i = 0; i < 3; i++)
@@ -428,7 +428,7 @@ namespace pj
         matrix_maker.push_back(identity_vis_lay);
         matrix_maker.push_back(tanh_matrix);
 
-        // static gama g(gama_init_value, &n);
+        static gama g(gama_init_value, &n);
 
         vector<mat> W_update = inv_S_F(vl, w, sampler_vector, matrix_maker);
 
@@ -440,11 +440,11 @@ namespace pj
 
     double W_update(visible_layer &vl, weights &w)
     {
-        static weights temp_w;
+        weights temp_w;
         static int n = 1;
-        static gama g(gama_init_value, &n);
-        temp_w = W_update_chooser(vl, w, g);
+        temp_w = W_update_chooser(vl, w, n);
         w = temp_w;
+        static gama g(gama_init_value, &n);
         n++;
         return g.out();
     }

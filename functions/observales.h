@@ -10,26 +10,26 @@ namespace pj
         visible_layer *vl = nullptr;
         weights *w = nullptr;
         double Z = 0;
-        function<visible_layer(const visible_layer, const weights &, std::random_device &)> sampler;
-        magnetization(visible_layer *VL, weights *W, function<visible_layer(const visible_layer, const weights &, std::random_device &)> sampler_in)
+        function<visible_layer(const visible_layer, const weights &, std::mt19937_64 &)> sampler;
+        magnetization(visible_layer *VL, weights *W, function<visible_layer(const visible_layer, const weights &, std::mt19937_64 &)> sampler_in)
         {
             sampler = sampler_in;
             vl = VL;
             w = W;
         }
-        double mag_x(visible_layer vis_lay, double z = 0)
+        dclx mag_x(visible_layer vis_lay, double z = 0)
         {
             // if (z = 0)
             // z = calc_z(sampler);
-            double m_x = 0;
+            dclx m_x = 0;
             visible_layer vl_m = vis_lay;
             for (size_t i = 0; i < row; i++)
             {
-                int n = vl_m.to_int();
+                // int n = vl_m.to_int();
                 vl_m.flip(i);
-                if (vl_m.to_int() == n)
-                    throw std::runtime_error("flipping not happening ");
-                m_x += norm(p_ratio(vl_m, *vl, *w));
+                // if (vl_m.to_int() == n)
+                    // throw std::runtime_error("flipping not happening ");
+                m_x += (p_ratio(vl_m, *vl, *w));
                 vl_m.flip(i);
             }
             return m_x;
@@ -56,7 +56,7 @@ namespace pj
             // visible_layer vis_lay = *vl;
             for (size_t i = 0; i < itt_value; i++)
             {
-                mag_x_av += mag_x(*vl, Z);
+                mag_x_av += real(mag_x(*vl, Z));
                 *vl = sampler(*vl, *w, rd);
             }
             mag_x_av = mag_x_av / itt_value;

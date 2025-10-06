@@ -14,7 +14,17 @@ void plot(vector<double> &itt_no, vector<double> &virst_vec, vector<double> &c, 
     save("./" + name + ".png");
     cla();
 }
-
+void plot(vector<double> &itt_no, vector<double> &virst_vec, string g, string name , string folder)
+{
+    using namespace matplot;
+    plot(itt_no, virst_vec, "3");
+    hold(on);
+    // plot(itt_no, c, "-o-");
+    matplot::legend({g});
+    cin.get();
+    save("./"+folder+ name + ".png");
+    cla();
+}
 void load_vector(vector<double> &itt, vector<double> &eloc, vector<double> &control, double control_num, string file_name)
 {
     // vector<double> itt,eloc,control;
@@ -22,6 +32,9 @@ void load_vector(vector<double> &itt, vector<double> &eloc, vector<double> &cont
     ifstream wao(file_name);
     string number;
     int n = 1;
+    itt.clear();
+    eloc.clear();
+    control.clear();
     while (getline(wao, number))
     {
         // cout<<number<<endl;
@@ -35,26 +48,42 @@ int main()
 {
     vector<double> itt, quantity, control;
     string num_spin,boundary_cond;
-
+    double  H;
+    vector<int> num ={40};
+    vector<double> h_itt={1.5};
     cout<<"number of spins"<<endl;
     cin>>num_spin;
     cout<<"boundary_cond (o/c)"<<endl;
-    cin>>boundary_cond;
+    boundary_cond="c";
+    cout<<"enter the value of H for which you want to plot";
+    cin>>H;
 
-
-    double control_num = 0;
-    string wao("./data_"+boundary_cond+"_"+num_spin+"/");
+    for (auto i : num)
+    {
+        for (auto j :h_itt)
+        {
+            
+            double control_num = 0;
+            string wao("./data_" +to_string(i)+"_"+to_string(j)+"_"+boundary_cond+"/");
+            load_vector(itt, quantity, control, control_num, wao+"e_loc.txt");
+            plot(itt,quantity,"eloc","eloc",wao);
+            load_vector(itt, quantity, control, control_num, wao+"e_loc_avg.txt");
+            plot(itt,quantity,"elocavg","elocavg",wao);
+            load_vector(itt, quantity, control, control_num, wao+"magnetization.txt");
+            plot(itt,quantity,"magnetization","mag",wao);
+            /* code */
+        }
+    }
     
-    cout<<"enter exact value for energy"<<endl;
-    cin>>control_num;
-    load_vector(itt, quantity, control, control_num, wao+"e_loc.txt");
-    plot(itt,quantity,control,"e_loc","exact_energy","e_loc");
     
-    cout<<"enter exact value for magnetization"<<endl;
-    cin>>control_num;
+    // cout<<"enter exact value for energy"<<endl;
+    // cin>>control_num;
+    // plot(itt,quantity,control,"e_loc","exact_energy","e_loc");
+    
+    // cout<<"enter exact value for magnetization"<<endl;
+    // cin>>control_num;
 
-    load_vector(itt, quantity, control, control_num, wao+"magnetization.txt");
-    plot(itt,quantity,control,"magnetization","exact_value","bruh");
+    // plot(itt,quantity,control,"magnetization","exact_value","bruh");
 
 
     // load_vector(itt, quantity, control, control_num, wao);

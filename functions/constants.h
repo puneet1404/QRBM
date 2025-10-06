@@ -7,50 +7,52 @@
 // constantants for the vmc;
 namespace pj
 {
-    // spin lattice properties
-    const int col = 1;
-    const int row = 10;
-    // interaction variables
-    const long double H = 0.5;
-    const long double J = 1;
-    // neural network parameters
-    const int alpha = 2;
-    const int hid_node_num = alpha * row;
+  // spin lattice properties
+  const int col = 1;
+  int row = 10;
+  // interaction variables
+  double H = 2;
+  const double J = 1;
+  // neural network parameters
+  const int alpha = 1;
+  const int hid_node_num = alpha * row;
 
-    // training parameters
-    const double gama_init_value = 0.01;
-    const double gama_decrement_exponent = 1;
-    const double mean = 0; // mean for initial random variable
-    const double sd = 0.001; // sd fro normal distribution of initial variable
-    const double itt_value =1000;
-    const bool multi_check = false;
-    const bool check_mulitple_vales_of_update = false;
-    const int check_mulitple_vales_of_update_after = 5000;
-    const int no_of_mulitple_vales_of_update = 10;
-    double beta =1;
+  // training parameters
+  const double gama_init_value = .1;
+  const double gama_decrement_exponent = .5;
+  const double mean = 0; // mean for initial random variable
+  const double sd = .1;  // sd fro normal distribution of initial variable
+  const double itt_value =250;
+  // int spin_flip_num = 4;
+ 
+  const bool multi_check = false;
+  const bool check_mulitple_vales_of_update = false;
+  const int check_mulitple_vales_of_update_after = 5000;
+  const int no_of_mulitple_vales_of_update = 10;
+  double beta = 1;
 
-    // ! activation funtion for now are not being used
-    // activation functions
-    double (*activation_function)(double) = sigmoid;
-    double (*activation_function_derivative)(double) = d_sigmoid;
+  // ! activation funtion for now are not being used
+  // activation functions
+  double (*activation_function)(double) = sigmoid;
+  double (*activation_function_derivative)(double) = d_sigmoid;
 
-    //magnetization partition function sampler 
-    // visible_layer (*magnetization_sampler)(visible_layer , const weights &, std::random_device &rd) =sampler_md ;
+  // magnetization partition function sampler
+  //  visible_layer (*magnetization_sampler)(visible_layer , const weights &, std::random_device &rd) =sampler_md ;
 
-    // quality of life
-    const bool picture_rest = false;
-    const bool display_togle = true;
-    const int graph_cuttoff = 0;
-    const bool graph_clear_after_interval(false);
-    const int graph_clear_interval(0);
+  // quality of life
+  const bool picture_rest = false;
+  const bool display_togle = true;
+  const int graph_cuttoff = 0;
+  const bool graph_clear_after_interval(false);
+  const int graph_clear_interval(0);
 
-    // running average window
-    const int run_avg_win = 50;
-    const int plot_interval = 100;
+  // running average window
+  const int run_avg_win = 100;
+  const int plot_interval = 100;
 
-    // compute exact results or not
+  // compute exact results or not
 
-    const bool exact_cal_bool = (row > 10) ? (false) : (true);
+  bool exact_cal_bool = (row > 10) ? (false) : (true);
 
 } // namespace pj
 
